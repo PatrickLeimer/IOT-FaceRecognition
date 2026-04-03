@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { collection, onSnapshot, query, orderBy, limit, where, Timestamp, getDocs } from 'firebase/firestore'
-import { db } from '../firebase'
-import { playNotificationSound } from '../utils'
+import { BACKEND_URL, playNotificationSound } from '../utils'
 import EventCard from '../components/EventCard'
 
 function StatCard({ label, value, sub }) {
@@ -21,62 +19,54 @@ export default function LiveFeed() {
   const [stats, setStats] = useState({ people: 0, today: 0, accuracy: null })
   const knownIds = useRef(null) // null = initial load not done
 
-  // Real-time events feed
   useEffect(() => {
-    const q = query(collection(db, 'events'), orderBy('timestamp', 'desc'), limit(50))
-    const unsub = onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    let cancelled = false
 
-      if (knownIds.current === null) {
-        // Initial load — mark all as known, no flash
-        knownIds.current = new Set(docs.map(d => d.id))
-      } else {
-        // Find genuinely new events
-        const fresh = docs.filter(d => !knownIds.current.has(d.id))
-        if (fresh.length > 0) {
-          playNotificationSound()
-          const freshSet = new Set(fresh.map(d => d.id))
-          setNewIds(prev => new Set([...prev, ...freshSet]))
-          setTimeout(() => setNewIds(prev => {
-            const next = new Set(prev)
-            freshSet.forEach(id => next.delete(id))
-            return next
-          }), 3000)
-          fresh.forEach(d => knownIds.current.add(d.id))
-        }
-      }
-
-      setEvents(docs)
-      setLoading(false)
-    })
-    return unsub
-  }, [])
-
-  // Stats
-  useEffect(() => {
-    const loadStats = async () => {
+    const loadDashboard = async () => {
       try {
-        const [usersSnap, todaySnap] = await Promise.all([
-          getDocs(collection(db, 'users')),
-          getDocs(query(
-            collection(db, 'events'),
-            where('timestamp', '>=', Timestamp.fromDate(new Date(new Date().setHours(0, 0, 0, 0))))
-          )),
-        ])
-        const todayDocs = todaySnap.docs.map(d => d.data())
-        const recognized = todayDocs.filter(e => e.status === 'recognized' || e.status === 'corrected').length
-        const accuracy = todayDocs.length > 0 ? Math.round((recognized / todayDocs.length) * 100) : null
-        setStats({ people: usersSnap.size, today: todayDocs.length, accuracy })
-      } catch { /* ignore */ }
+        const res = await fetch(`${BACKEND_URL}/dashboard`)
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) return
+
+        const docs = Array.isArray(data.events) ? data.events : []
+
+        if (knownIds.current === null) {
+          knownIds.current = new Set(docs.map(d => d.id))
+        } else {
+          const fresh = docs.filter(d => !knownIds.current.has(d.id))
+          if (fresh.length > 0) {
+            playNotificationSound()
+            const freshSet = new Set(fresh.map(d => d.id))
+            setNewIds(prev => new Set([...prev, ...freshSet]))
+            setTimeout(() => setNewIds(prev => {
+              const next = new Set(prev)
+              freshSet.forEach(id => next.delete(id))
+              return next
+            }), 3000)
+            fresh.forEach(d => knownIds.current.add(d.id))
+          }
+        }
+
+        if (!cancelled) {
+          setEvents(docs)
+          setStats(data.stats ?? { people: 0, today: 0, accuracy: null })
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) setLoading(false)
+      }
     }
-    loadStats()
-    const id = setInterval(loadStats, 60000)
-    return () => clearInterval(id)
+
+    loadDashboard()
+    const id = setInterval(loadDashboard, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [])
 
   return (
     <div className="space-y-6">
-      {/* Stats bar */}
       <div className="flex gap-3 flex-wrap">
         <StatCard label="People enrolled" value={stats.people} />
         <StatCard label="Events today" value={stats.today} />
@@ -87,7 +77,6 @@ export default function LiveFeed() {
         />
       </div>
 
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-100">Live Feed</h1>
@@ -98,7 +87,6 @@ export default function LiveFeed() {
         )}
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
@@ -113,7 +101,6 @@ export default function LiveFeed() {
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && events.length === 0 && (
         <div className="text-center py-24 space-y-3">
           <svg className="w-16 h-16 text-slate-700 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -124,7 +111,6 @@ export default function LiveFeed() {
         </div>
       )}
 
-      {/* Event grid */}
       {!loading && events.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {events.map(event => (

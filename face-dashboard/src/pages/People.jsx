@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, onSnapshot, addDoc, deleteDoc, getDocs, doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, deleteDoc, getDocs, doc, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { BACKEND_URL } from '../utils'
 import { useToast } from '../context/ToastContext'
@@ -17,12 +17,20 @@ export default function People() {
   const [adding, setAdding] = useState(false)
   const toast = useToast()
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'users'), snap => {
-      setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  const loadUsers = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/users`)
+      const data = await res.json().catch(() => [])
+      setUsers(Array.isArray(data) ? data : [])
+    } catch {
+      toast('Failed to load people', 'error')
+    } finally {
       setLoading(false)
-    })
-    return unsub
+    }
+  }
+
+  useEffect(() => {
+    loadUsers()
   }, [])
 
   const filtered = users.filter(u =>
@@ -52,6 +60,7 @@ export default function People() {
       // Delete source user document
       await deleteDoc(doc(db, 'users', sourceId))
       setMergeSelected([])
+      await loadUsers()
       toast(`Merged "${source?.name}" into "${target?.name}"`, 'success')
     } catch {
       toast('Merge failed', 'error')
@@ -77,6 +86,7 @@ export default function People() {
           if (data.user_id) userId = data.user_id
         }
       }
+      await loadUsers()
       toast(`Added "${newName.trim()}" with ${newFiles.length} photo(s)`, 'success')
       setShowAddForm(false)
       setNewName('')
@@ -97,6 +107,7 @@ export default function People() {
         form.append('image', file)
         await fetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
       }
+      await loadUsers()
       toast(`Added ${files.length} photo(s) to ${person.name}`, 'success')
     } catch {
       toast('Failed to upload photos', 'error')

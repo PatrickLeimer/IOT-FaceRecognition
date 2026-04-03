@@ -3,12 +3,13 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBd7v15GXP8rI8Ou0XBUWb83TveuAr0GNE",
-  authDomain: "face-recognition-b7c76.firebaseapp.com",
-  projectId: "face-recognition-b7c76",
-  storageBucket: "face-recognition-b7c76.firebasestorage.app",
-  messagingSenderId: "411756874854",
-  appId: "1:411756874854:web:e268d681de37c5ce6ef1a7"
+  apiKey: "AIzaSyAwm-S9HagZPs7pzYdoaXZeYcpoDMhaxqA",
+  authDomain: "face-recognition-b7c76-6e59c.firebaseapp.com",
+  projectId: "face-recognition-b7c76-6e59c",
+  storageBucket: "face-recognition-b7c76-6e59c.firebasestorage.app",
+  messagingSenderId: "727333410370",
+  appId: "1:727333410370:web:47dde3feb6dd031503bfdb",
+  measurementId: "G-DTFPE9GFD7"
 };
 
 const app = initializeApp(firebaseConfig);

@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { updateDoc, doc } from 'firebase/firestore'
-import { db } from '../firebase'
-import { resolveImageUrl, formatRelativeTime, getConfidenceColor, getStatusInfo } from '../utils'
+import { BACKEND_URL, resolveImageUrl, formatRelativeTime, getConfidenceColor, getStatusInfo } from '../utils'
 import { useToast } from '../context/ToastContext'
 import CorrectionModal from './CorrectionModal'
 
@@ -34,10 +32,12 @@ export default function EventCard({ event, isNew }) {
   const handleConfirm = async () => {
     setConfirming(true)
     try {
-      await updateDoc(doc(db, 'events', id), { status: 'recognized', reviewed: true })
+      const res = await fetch(`${BACKEND_URL}/confirm/${id}`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.detail ?? data.message ?? 'Failed to confirm')
       toast('Confirmed as recognized', 'success')
-    } catch {
-      toast('Failed to confirm', 'error')
+    } catch (error) {
+      toast(error?.message || 'Failed to confirm', 'error')
     } finally {
       setConfirming(false)
     }

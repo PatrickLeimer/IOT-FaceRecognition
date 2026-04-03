@@ -77,6 +77,61 @@ def create_user(name: str) -> str:
     return doc_ref[1].id
 
 
+
+
+def serialize_firestore_value(value):
+    """Convert Firestore types into JSON-safe values."""
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
+
+
+def get_recent_events(limit_count: int = 50):
+    """Return recent events ordered newest-first."""
+    docs = db.collection("events").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit_count).stream()
+    events = []
+    for event_doc in docs:
+        data = event_doc.to_dict()
+        data["id"] = event_doc.id
+        for key, value in list(data.items()):
+            data[key] = serialize_firestore_value(value)
+        events.append(data)
+    return events
+
+
+def get_dashboard_stats():
+    """Summarize dashboard counters from Firestore."""
+    users = get_all_users_with_faces()
+    events = get_recent_events(200)
+    today = datetime.utcnow().date()
+    today_events = []
+    for event in events:
+        ts = event.get("timestamp")
+        if not ts:
+            continue
+        try:
+            event_date = datetime.fromisoformat(ts.replace("Z", "+00:00")).date()
+        except ValueError:
+            continue
+        if event_date == today:
+            today_events.append(event)
+
+    recognized = sum(1 for event in today_events if event.get("status") in {"recognized", "corrected"})
+    accuracy = round((recognized / len(today_events)) * 100) if today_events else None
+    return {
+        "people": len(users),
+        "today": len(today_events),
+        "accuracy": accuracy,
+    }
+
+
+def confirm_event(event_id: str):
+    """Mark an event as reviewed and recognized."""
+    db.collection("events").document(event_id).update({
+        "status": "recognized",
+        "reviewed": True
+    })
+
 def correct_event(event_id: str, corrected_user_id: str, corrected_name: str):
     """Update an event with the correction."""
     db.collection("events").document(event_id).update({

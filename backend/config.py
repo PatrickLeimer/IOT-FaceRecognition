@@ -13,4 +13,4 @@ MAX_BRIGHTNESS = 220
 
 # Firebase
 FIREBASE_CREDENTIALS_PATH = "serviceAccountKey.json"
-FIREBASE_STORAGE_BUCKET = "face-recognition-b7c76.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "face-recognition-b7c76-6e59c.firebasestorage.app"

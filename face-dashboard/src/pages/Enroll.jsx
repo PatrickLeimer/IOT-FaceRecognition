@@ -62,13 +62,13 @@ export default function Enroll() {
         const res = await fetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
         const data = await res.json().catch(() => ({}))
         if (res.ok) {
-          if (data.user_id && !userId) userId = data.user_id
+          if ((data.userId || data.user_id) && !userId) userId = data.userId || data.user_id
           results.push({ file: files[i].name, ok: true })
         } else {
-          results.push({ file: files[i].name, ok: false, err: data.detail ?? 'Failed' })
+          results.push({ file: files[i].name, ok: false, err: data.detail ?? data.message ?? `Request failed (${res.status})` })
         }
-      } catch {
-        results.push({ file: files[i].name, ok: false, err: 'Network error' })
+      } catch (error) {
+        results.push({ file: files[i].name, ok: false, err: error?.message || 'Network error' })
       }
 
       setProgress({ current: i + 1, total, results: [...results] })

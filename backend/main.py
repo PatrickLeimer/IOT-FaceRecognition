@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
+from google.api_core.exceptions import GoogleAPIError, NotFound
 import face_engine
 import firebase_service
 import uuid
@@ -18,6 +19,23 @@ app.add_middleware(
 known_users = []
 
 
+def raise_storage_error(exc: Exception):
+    """Convert storage/provider failures into readable API errors."""
+    if isinstance(exc, NotFound):
+        raise HTTPException(
+            status_code=500,
+            detail="Firebase Storage bucket was not found. Check FIREBASE_STORAGE_BUCKET in backend/config.py."
+        ) from exc
+
+    if isinstance(exc, GoogleAPIError):
+        raise HTTPException(
+            status_code=500,
+            detail=f"Firebase request failed: {exc.message if hasattr(exc, 'message') else str(exc)}"
+        ) from exc
+
+    raise exc
+
+
 @app.on_event("startup")
 async def load_faces():
     """Load all known face encodings from Firebase on startup."""
@@ -30,7 +48,10 @@ async def load_faces():
 async def reload_faces():
     """Manually trigger a reload of face encodings from Firebase."""
     global known_users
-    known_users = firebase_service.get_all_users_with_faces()
+    try:
+        known_users = firebase_service.get_all_users_with_faces()
+    except Exception as exc:
+        raise_storage_error(exc)
     return {"message": f"Reloaded {len(known_users)} users"}
 
 
@@ -68,7 +89,10 @@ async def recognize(image: UploadFile = File(...)):
 
     # Step 5: Upload the captured image to Firebase Storage
     image_path = f"events/{uuid.uuid4().hex}.jpg"
-    image_url = firebase_service.upload_image(image_bytes, image_path)
+    try:
+        image_url = firebase_service.upload_image(image_bytes, image_path)
+    except Exception as exc:
+        raise_storage_error(exc)
 
     # Step 6: Log the event
     event_data = {
@@ -80,16 +104,22 @@ async def recognize(image: UploadFile = File(...)):
         "correctedName": None,
         "correctedUserId": None
     }
-    event_id = firebase_service.log_event(event_data)
+    try:
+        event_id = firebase_service.log_event(event_data)
+    except Exception as exc:
+        raise_storage_error(exc)
 
     # Step 7: If high confidence, auto-enroll this encoding (more data = better)
     if result["status"] == "recognized" and result["confidence"] >= 0.85:
-        firebase_service.enroll_face(
-            user_id=result["userId"],
-            encoding=unknown_encoding.tolist(),
-            image_url=image_url,
-            source="auto"
-        )
+        try:
+            firebase_service.enroll_face(
+                user_id=result["userId"],
+                encoding=unknown_encoding.tolist(),
+                image_url=image_url,
+                source="auto"
+            )
+        except Exception as exc:
+            raise_storage_error(exc)
 
     return {
         "status": result["status"],
@@ -122,27 +152,43 @@ async def enroll(
 
     # Upload image
     image_path = f"faces/{uuid.uuid4().hex}.jpg"
-    image_url = firebase_service.upload_image(image_bytes, image_path)
+    try:
+        image_url = firebase_service.upload_image(image_bytes, image_path)
+    except Exception as exc:
+        raise_storage_error(exc)
 
     # Create user or add to existing
-    if user_id is None:
-        user_id = firebase_service.create_user(name)
+    try:
+        if user_id is None:
+            user_id = firebase_service.create_user(name)
 
-    firebase_service.enroll_face(
-        user_id=user_id,
-        encoding=encoding.tolist(),
-        image_url=image_url,
-        source="manual"
-    )
+        firebase_service.enroll_face(
+            user_id=user_id,
+            encoding=encoding.tolist(),
+            image_url=image_url,
+            source="manual"
+        )
 
-    # Reload known faces so recognition immediately includes this person
-    global known_users
-    known_users = firebase_service.get_all_users_with_faces()
+        # Reload known faces so recognition immediately includes this person
+        global known_users
+        known_users = firebase_service.get_all_users_with_faces()
+    except Exception as exc:
+        raise_storage_error(exc)
 
     return {
         "message": f"Enrolled face for {name}",
         "userId": user_id
     }
+
+
+@app.post("/confirm/{event_id}")
+async def confirm_event(event_id: str):
+    """Mark a review event as confirmed recognized."""
+    try:
+        firebase_service.confirm_event(event_id)
+    except Exception as exc:
+        raise_storage_error(exc)
+    return {"message": f"Event {event_id} confirmed"}
 
 
 @app.post("/correct/{event_id}")
@@ -167,7 +213,10 @@ async def correct_event(
 @app.get("/users")
 async def list_users():
     """List all known users (for dropdown menus in the UI)."""
-    users = firebase_service.get_all_users_with_faces()
+    try:
+        users = firebase_service.get_all_users_with_faces()
+    except Exception as exc:
+        raise_storage_error(exc)
     return [
         {
             "id": u["id"],
@@ -176,6 +225,18 @@ async def list_users():
         }
         for u in users
     ]
+
+
+@app.get("/dashboard")
+async def dashboard_data():
+    """Return dashboard counters and recent events for the web app."""
+    try:
+        return {
+            "stats": firebase_service.get_dashboard_stats(),
+            "events": firebase_service.get_recent_events(),
+        }
+    except Exception as exc:
+        raise_storage_error(exc)
 
 
 @app.get("/health")

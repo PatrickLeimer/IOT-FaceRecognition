@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore'
+import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebase'
 import { BACKEND_URL, resolveImageUrl } from '../utils'
 import { useToast } from '../context/ToastContext'
@@ -36,19 +36,12 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
     try {
       if (tab === 'existing') {
         const user = users.find(u => u.id === selectedUserId)
-        // Call backend correction endpoint
         const form = new FormData()
         form.append('correct_user_id', selectedUserId)
         form.append('correct_name', user?.name ?? '')
-        await fetch(`${BACKEND_URL}/correct/${event.id}`, { method: 'POST', body: form })
-
-        // Update Firestore event
-        await updateDoc(doc(db, 'events', event.id), {
-          status: 'corrected',
-          correctedName: user?.name ?? '',
-          correctedUserId: selectedUserId,
-          reviewed: true,
-        })
+        const res = await fetch(`${BACKEND_URL}/correct/${event.id}`, { method: 'POST', body: form })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.detail ?? data.message ?? 'Failed to save correction')
         toast('Correction saved', 'success')
       } else {
         // New person — enroll from event image
@@ -70,13 +63,14 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
           }
         }
 
-        // Mark the event as corrected in Firestore
-        await updateDoc(doc(db, 'events', event.id), {
-          status: 'corrected',
-          correctedName: name,
-          correctedUserId: enrolledUserId ?? '',
-          reviewed: true,
-        })
+        if (enrolledUserId) {
+          const form = new FormData()
+          form.append('correct_user_id', enrolledUserId)
+          form.append('correct_name', name)
+          const correctRes = await fetch(`${BACKEND_URL}/correct/${event.id}`, { method: 'POST', body: form })
+          const correctData = await correctRes.json().catch(() => ({}))
+          if (!correctRes.ok) throw new Error(correctData.detail ?? correctData.message ?? 'Failed to mark event corrected')
+        }
         toast(`Enrolled "${name}" successfully`, 'success')
       }
 
@@ -84,7 +78,7 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
       onClose()
     } catch (err) {
       console.error(err)
-      toast('Something went wrong — check the console', 'error')
+      toast(err?.message || 'Something went wrong', 'error')
     } finally {
       setLoading(false)
     }
