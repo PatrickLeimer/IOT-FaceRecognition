@@ -62,6 +62,24 @@ export default function EventCard({ event, isNew }) {
           ) : (
             <FacePlaceholder />
           )}
+            {/* Face bounding box */}
+          {event.facialArea && !imgError && imgSrc && (
+            <div
+              className="absolute border-2 border-teal-400 rounded pointer-events-none"
+              style={{
+                left:   `${event.facialArea.x * 100}%`,
+                top:    `${event.facialArea.y * 100}%`,
+                width:  `${event.facialArea.w * 100}%`,
+                height: `${event.facialArea.h * 100}%`,
+              }}
+            >
+              {/* Label on the box */}
+              <span className="absolute -top-5 left-0 text-xs bg-teal-500 text-white px-1.5 py-0.5 rounded whitespace-nowrap">
+                {displayName}
+              </span>
+            </div>
+          )}
+
           {/* Status badge overlay */}
           <div className="absolute top-2 left-2">
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>{label}</span>
@@ -86,12 +104,12 @@ export default function EventCard({ event, isNew }) {
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">Confidence</span>
-                <span className={`text-xs font-medium ${confColor.text}`}>{Math.round(confidence * 100)}%</span>
+                <span className={`text-xs font-medium ${confColor.text}`}>{Math.max(0, Math.round(confidence * 100))}%</span>
               </div>
               <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${confColor.bar}`}
-                  style={{ width: `${Math.round(confidence * 100)}%` }}
+                  style={{ width: `${Math.max(0, Math.round(confidence * 100))}%` }}
                 />
               </div>
             </div>

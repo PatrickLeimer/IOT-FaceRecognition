@@ -59,9 +59,10 @@ async def recognize(image: UploadFile = File(...)):
         })
         return {"status": "no_face", "message": "No face detected in image"}
 
-    # Step 3: Use the largest face (closest to camera)
-    # For simplicity, just use the first face detected
-    unknown_encoding = encodings[0]
+    # Step 3: Use first detected face
+    unknown_face = encodings[0]
+    unknown_encoding = unknown_face["encoding"]
+    facial_area = unknown_face.get("facial_area_pct")
 
     # Step 4: Match against known faces
     result = face_engine.match_face(unknown_encoding, known_users)
@@ -77,6 +78,7 @@ async def recognize(image: UploadFile = File(...)):
         "confidence": result.get("confidence", 0.0),
         "status": result["status"],
         "imageUrl": image_url,
+        "facialArea": facial_area,
         "correctedName": None,
         "correctedUserId": None
     }
@@ -118,7 +120,7 @@ async def enroll(
     if len(encodings) > 1:
         raise HTTPException(status_code=400, detail="Multiple faces detected — use a photo with one person")
 
-    encoding = encodings[0]
+    encoding = encodings[0]["encoding"]
 
     # Upload image
     image_path = f"faces/{uuid.uuid4().hex}.jpg"
@@ -143,6 +145,52 @@ async def enroll(
         "message": f"Enrolled face for {name}",
         "userId": user_id
     }
+
+
+@app.post("/enroll-from-event/{event_id}")
+async def enroll_from_event(
+    event_id: str,
+    name: str = Form(...),
+    user_id: str = Form(None),
+):
+    """
+    Enroll a face using an existing event's stored image.
+    Avoids CORS issues by fetching the image server-side.
+    """
+    import urllib.request
+
+    event = firebase_service.get_event(event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    image_url = event.get("imageUrl")
+    if not image_url:
+        raise HTTPException(status_code=400, detail="Event has no image")
+
+    # Fetch image server-side
+    with urllib.request.urlopen(image_url) as response:
+        image_bytes = response.read()
+
+    encodings = face_engine.detect_and_encode(image_bytes)
+    if not encodings:
+        raise HTTPException(status_code=400, detail="No face detected in event image")
+
+    if user_id is None:
+        user_id = firebase_service.create_user(name)
+
+    firebase_service.enroll_face(
+        user_id=user_id,
+        encoding=encodings[0]["encoding"].tolist(),
+        image_url=image_url,
+        source="correction",
+    )
+
+    firebase_service.correct_event(event_id, user_id, name)
+
+    global known_users
+    known_users = firebase_service.get_all_users_with_faces()
+
+    return {"message": f"Enrolled {name}", "user_id": user_id}
 
 
 @app.post("/correct/{event_id}")

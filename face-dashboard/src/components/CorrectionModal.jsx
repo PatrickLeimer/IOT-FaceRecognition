@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { BACKEND_URL, resolveImageUrl } from '../utils'
+import { BACKEND_URL, resolveImageUrl } from '../utils' // resolveImageUrl used for image preview
 import { useToast } from '../context/ToastContext'
 
 /**
@@ -51,30 +51,26 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
         })
         toast('Correction saved', 'success')
       } else {
-        // New person — enroll from event image
+        // New person — backend fetches the image server-side (avoids CORS)
         const name = newName.trim()
-        const imgUrl = resolveImageUrl(event.imageUrl)
-
-        let enrolledUserId = null
-        if (imgUrl) {
-          const imgRes = await fetch(imgUrl)
-          const blob = await imgRes.blob()
-          const file = new File([blob], 'face.jpg', { type: blob.type || 'image/jpeg' })
-          const form = new FormData()
-          form.append('name', name)
-          form.append('image', file)
-          const enrollRes = await fetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
-          if (enrollRes.ok) {
-            const data = await enrollRes.json().catch(() => ({}))
-            enrolledUserId = data.user_id ?? null
-          }
+        const form = new FormData()
+        form.append('name', name)
+        const enrollRes = await fetch(`${BACKEND_URL}/enroll-from-event/${event.id}`, {
+          method: 'POST',
+          body: form,
+        })
+        if (!enrollRes.ok) {
+          const err = await enrollRes.json().catch(() => ({}))
+          throw new Error(err.detail ?? 'Enrollment failed')
         }
+        const enrollData = await enrollRes.json()
+        const enrolledUserId = enrollData.user_id ?? ''
 
-        // Mark the event as corrected in Firestore
+        // Firestore is already updated by the backend, but sync locally too
         await updateDoc(doc(db, 'events', event.id), {
           status: 'corrected',
           correctedName: name,
-          correctedUserId: enrolledUserId ?? '',
+          correctedUserId: enrolledUserId,
           reviewed: true,
         })
         toast(`Enrolled "${name}" successfully`, 'success')

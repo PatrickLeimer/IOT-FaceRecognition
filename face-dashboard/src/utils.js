@@ -20,8 +20,8 @@ export function formatRelativeTime(timestamp) {
 
 export function getConfidenceColor(confidence) {
   if (confidence == null) return { bar: 'bg-slate-600', text: 'text-slate-400' };
-  if (confidence >= 0.75) return { bar: 'bg-green-500', text: 'text-green-400' };
-  if (confidence >= 0.50) return { bar: 'bg-amber-500', text: 'text-amber-400' };
+  if (confidence >= 0.40) return { bar: 'bg-green-500', text: 'text-green-400' };
+  if (confidence >= 0.25) return { bar: 'bg-amber-500', text: 'text-amber-400' };
   return { bar: 'bg-red-500', text: 'text-red-400' };
 }
 

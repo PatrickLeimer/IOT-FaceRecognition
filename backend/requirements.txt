@@ -1,7 +1,9 @@
 fastapi
 uvicorn[standard]
-face-recognition
+deepface
+tf-keras
 numpy
 Pillow
 firebase-admin
 python-multipart
+opencv-python

@@ -77,6 +77,16 @@ def create_user(name: str) -> str:
     return doc_ref[1].id
 
 
+def get_event(event_id: str) -> dict:
+    """Fetch a single event by ID."""
+    doc = db.collection("events").document(event_id).get()
+    if doc.exists:
+        data = doc.to_dict()
+        data["id"] = doc.id
+        return data
+    return None
+
+
 def correct_event(event_id: str, corrected_user_id: str, corrected_name: str):
     """Update an event with the correction."""
     db.collection("events").document(event_id).update({
