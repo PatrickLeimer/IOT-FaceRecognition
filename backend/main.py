@@ -71,7 +71,21 @@ async def recognize(image: UploadFile = File(...)):
     image_path = f"events/{uuid.uuid4().hex}.jpg"
     image_url = firebase_service.upload_image(image_bytes, image_path)
 
-    # Step 6: Log the event
+    # Step 6: Enroll the capture into the matched person's profile so the model
+    # improves over time. "needs_review" captures are marked "pending" and will
+    # be removed from the wrong person if the user later corrects the event.
+    enrolled_face_id = None
+    if result["status"] in ("recognized", "needs_review") and result.get("userId"):
+        source = "auto" if result["status"] == "recognized" else "pending"
+        enrolled_face_id = firebase_service.enroll_face(
+            user_id=result["userId"],
+            encoding=unknown_encoding.tolist(),
+            image_url=image_url,
+            source=source,
+        )
+
+    # Step 7: Log the event. Store enrolled face reference so corrections can
+    # delete the photo from the wrong person's profile.
     event_data = {
         "detectedName": result.get("name"),
         "detectedUserId": result.get("userId"),
@@ -80,18 +94,16 @@ async def recognize(image: UploadFile = File(...)):
         "imageUrl": image_url,
         "facialArea": facial_area,
         "correctedName": None,
-        "correctedUserId": None
+        "correctedUserId": None,
+        "enrolledFaceId": enrolled_face_id,
+        "enrolledUserId": result.get("userId") if enrolled_face_id else None,
     }
     event_id = firebase_service.log_event(event_data)
 
-    # Step 7: If high confidence, auto-enroll this encoding (more data = better)
-    if result["status"] == "recognized" and result["confidence"] >= 0.85:
-        firebase_service.enroll_face(
-            user_id=result["userId"],
-            encoding=unknown_encoding.tolist(),
-            image_url=image_url,
-            source="auto"
-        )
+    firebase_service.update_lcd_display(
+        name=result.get("name", "Unknown"),
+        status=result["status"]
+    )
 
     return {
         "status": result["status"],
@@ -177,6 +189,12 @@ async def enroll_from_event(
 
     if user_id is None:
         user_id = firebase_service.create_user(name)
+
+    # Remove the photo from the wrong person's profile if it was auto-enrolled
+    wrong_face_id = event.get("enrolledFaceId")
+    wrong_user_id = event.get("enrolledUserId")
+    if wrong_face_id and wrong_user_id and wrong_user_id != user_id:
+        firebase_service.delete_face(wrong_user_id, wrong_face_id)
 
     firebase_service.enroll_face(
         user_id=user_id,

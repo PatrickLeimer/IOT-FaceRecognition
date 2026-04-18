@@ -36,13 +36,16 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
     try {
       if (tab === 'existing') {
         const user = users.find(u => u.id === selectedUserId)
-        // Call backend correction endpoint
         const form = new FormData()
-        form.append('correct_user_id', selectedUserId)
-        form.append('correct_name', user?.name ?? '')
-        await fetch(`${BACKEND_URL}/correct/${event.id}`, { method: 'POST', body: form })
+        form.append('name', user?.name ?? '')
+        form.append('user_id', selectedUserId)
+        const res = await fetch(`${BACKEND_URL}/enroll-from-event/${event.id}`, { method: 'POST', body: form })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.detail ?? 'Correction failed')
+        }
 
-        // Update Firestore event
+        // Backend already writes to Firestore via correct_event(); mirror locally for instant UI update
         await updateDoc(doc(db, 'events', event.id), {
           status: 'corrected',
           correctedName: user?.name ?? '',

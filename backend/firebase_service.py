@@ -53,15 +53,23 @@ def log_event(event_data: dict) -> str:
     return doc_ref[1].id
 
 
-def enroll_face(user_id: str, encoding: list, image_url: str, source: str = "manual"):
-    """Add a face encoding to a user's profile."""
-    db.collection("users").document(user_id).collection("faces").add({
+def enroll_face(user_id: str, encoding: list, image_url: str, source: str = "manual") -> str:
+    """Add a face encoding to a user's profile. Returns the face doc ID."""
+    _, face_ref = db.collection("users").document(user_id).collection("faces").add({
         "encoding": encoding,
         "imageUrl": image_url,
         "addedAt": firestore.SERVER_TIMESTAMP,
         "source": source
     })
-    # Update the user's updatedAt timestamp
+    db.collection("users").document(user_id).update({
+        "updatedAt": firestore.SERVER_TIMESTAMP
+    })
+    return face_ref.id
+
+
+def delete_face(user_id: str, face_id: str):
+    """Remove a face doc from a user's profile."""
+    db.collection("users").document(user_id).collection("faces").document(face_id).delete()
     db.collection("users").document(user_id).update({
         "updatedAt": firestore.SERVER_TIMESTAMP
     })
@@ -94,4 +102,13 @@ def correct_event(event_id: str, corrected_user_id: str, corrected_name: str):
         "correctedName": corrected_name,
         "status": "corrected",
         "reviewed": True
+    })
+
+
+def update_lcd_display(name: str, status: str):
+    """Overwrite the single document ESP32 LCD polls for the latest result."""
+    db.collection("display").document("current").set({
+        "name": name,
+        "status": status,
+        "timestamp": firestore.SERVER_TIMESTAMP
     })

@@ -42,7 +42,6 @@ ESP32-CAM  →  FastAPI Backend  →  Firebase Firestore + Storage
 |------|---------|---------|
 | Python 3.9+ | Run the backend | python.org |
 | Node.js 18+ | Run the React app | nodejs.org |
-| ngrok | Expose backend to ESP32 | ngrok.com |
 | VS Build Tools + CMake | Compile dlib (face recognition) | See below |
 
 ### Visual Studio Build Tools (Windows only — required for `face_recognition`)
@@ -125,20 +124,61 @@ curl http://localhost:8000/health
 
 ---
 
-## Exposing the Backend (ngrok)
+## Local Network Setup
 
-The ESP32 needs a public HTTPS URL to reach your backend. Open a **second terminal**:
+The XIAO and your laptop must be on the **same WiFi network**. The XIAO POSTs to your laptop's LAN IP directly — no tunnel needed.
+
+### 1. Find your laptop's IP
+
+**Windows:**
+```
+ipconfig
+```
+Look for `IPv4 Address` under **Wireless LAN adapter Wi-Fi** — e.g. `192.168.1.42`.
+
+**macOS:**
+```bash
+ipconfig getifaddr en0
+```
+
+### 2. Start the backend bound to all interfaces
 
 ```bash
-ngrok http 8000
+cd backend
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Copy the `Forwarding` URL — it looks like:
-```
-https://abc123.ngrok-free.app
-```
+The `--host 0.0.0.0` flag is what lets devices on the LAN reach the server (not just `localhost`).
 
-> The ngrok URL changes every time you restart it. Update the ESP32 code and `.env` file whenever it changes. Paid ngrok plans have static URLs.
+### 3. Allow Python through the Windows Firewall
+
+The first time you run uvicorn, Windows will show a security popup — click **"Allow access"** and make sure **Private networks** is checked.
+
+### 4. Verify reachability from another device
+
+From a phone on the **same WiFi**, open a browser and navigate to:
+```
+http://<laptop-ip>:8000/health
+```
+You should see `{"status":"ok","usersLoaded":0}`. If the page times out, check the firewall step above.
+
+### 5. Set the IP in the frontend `.env`
+
+Open `face-dashboard/.env` and set:
+```
+VITE_BACKEND_URL=http://192.168.1.42:8000
+```
+Replace `192.168.1.42` with the actual IP from step 1.
+
+### 6. Set the IP in the XIAO firmware
+
+The firmware has a `backendUrl` constant (or similar) — update it to match:
+```cpp
+const char* backendUrl = "http://192.168.1.42:8000/recognize";
+```
+Flash the board after changing it.
+
+> **Classroom / university WiFi warning:** Many campus networks enable **AP isolation**, which blocks traffic between devices on the same SSID. If the XIAO can't reach the laptop even with the right IP, use a **phone hotspot** instead — connect both the laptop and the XIAO to the hotspot, then repeat the `ipconfig` step to get the new IP.
 
 ---
 
@@ -149,10 +189,10 @@ https://abc123.ngrok-free.app
 Open `face-dashboard/.env`:
 
 ```
-VITE_BACKEND_URL=https://abc123.ngrok-free.app
+VITE_BACKEND_URL=http://192.168.1.42:8000
 ```
 
-Use `http://localhost:8000` if you're only testing locally without the ESP32.
+Replace `192.168.1.42` with your laptop's actual LAN IP (see Local Network Setup above).
 
 ### 2. Install and start
 
@@ -221,20 +261,19 @@ GND      ────────→ GND
 ```cpp
 const char* ssid      = "YOUR_WIFI_SSID";
 const char* password  = "YOUR_WIFI_PASSWORD";
-const char* serverUrl = "https://abc123.ngrok-free.app/recognize";
+const char* backendUrl = "http://192.168.1.42:8000/recognize";
 ```
 
 ---
 
-## All Three Processes Running
+## Both Processes Running
 
-You need three terminals running simultaneously:
+You need two terminals running simultaneously:
 
 | Terminal | Directory | Command |
 |----------|-----------|---------|
 | 1 — Backend | `backend/` | `uvicorn main:app --reload --host 0.0.0.0 --port 8000` |
-| 2 — ngrok | anywhere | `ngrok http 8000` |
-| 3 — Frontend | `face-dashboard/` | `npm run dev` |
+| 2 — Frontend | `face-dashboard/` | `npm run dev` |
 
 ---
 
@@ -282,8 +321,8 @@ Tips:
 **`serviceAccountKey.json` error on startup**
 → Make sure the file is in the `backend/` folder and the path in `config.py` is `"serviceAccountKey.json"`.
 
-**ESP32 gets HTTP error / times out**
-→ Face recognition takes 1–3 seconds. The code has a 15s timeout. If it still fails, check that ngrok is running and the URL in the ESP32 code is correct.
+**XIAO gets HTTP error / times out**
+→ Face recognition takes 1–3 seconds. The firmware has a 15s timeout. If it still fails: (1) confirm the laptop IP in the firmware matches `ipconfig` output, (2) verify the backend is running with `--host 0.0.0.0`, (3) test `/health` from a phone browser on the same network, (4) if on campus WiFi try a phone hotspot instead (AP isolation).
 
 **`usersLoaded: 0` after enrolling**
 → Click the "Reload Model" button in the dashboard nav, or call `POST /reload`.

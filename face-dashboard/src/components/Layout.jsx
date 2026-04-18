@@ -12,7 +12,6 @@ export default function Layout({ children }) {
       try {
         const res = await fetch(`${BACKEND_URL}/health`, {
           signal: AbortSignal.timeout(3000),
-          headers: { 'ngrok-skip-browser-warning': 'true' },
         })
         setStatus(res.ok ? 'online' : 'offline')
       } catch {
