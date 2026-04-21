@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import face_engine
 import firebase_service
 import uuid
+import cv2
+import numpy as np
 
 app = FastAPI(title="Face Recognition IoT Backend")
 
@@ -41,6 +43,10 @@ async def recognize(image: UploadFile = File(...)):
     Returns: name, confidence, status
     """
     image_bytes = await image.read()
+
+    # Rotate 90 degrees clockwise
+    img = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+    image_bytes = cv2.imencode('.jpg', cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE))[1].tobytes()
 
     # Step 1: Check image quality
     quality = face_engine.check_image_quality(image_bytes)
