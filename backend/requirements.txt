@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+deepface
+tf-keras
+numpy
+Pillow
+firebase-admin
+python-multipart
+opencv-python
