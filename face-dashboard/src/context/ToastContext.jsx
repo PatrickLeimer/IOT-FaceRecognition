@@ -12,24 +12,74 @@ export function ToastProvider({ children }) {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   }, []);
 
+  const getStyle = (type) => {
+    if (type === 'success') return {
+      background: 'var(--bg-2)',
+      border: '1px solid var(--green-border)',
+      color: 'var(--t1)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 16px rgba(0,245,160,0.15)',
+    }
+    if (type === 'error') return {
+      background: 'var(--bg-2)',
+      border: '1px solid var(--red-border)',
+      color: 'var(--t1)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 16px rgba(255,45,85,0.15)',
+    }
+    return {
+      background: 'var(--bg-2)',
+      border: '1px solid var(--cyan-border)',
+      color: 'var(--t1)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 16px rgba(0,229,255,0.1)',
+    }
+  }
+
+  const getDotColor = (type) => {
+    if (type === 'success') return 'var(--green)'
+    if (type === 'error')   return 'var(--red)'
+    return 'var(--cyan)'
+  }
+
+  const getLabel = (type) => {
+    if (type === 'success') return 'OK'
+    if (type === 'error')   return 'ERR'
+    return 'INFO'
+  }
+
   return (
     <ToastContext.Provider value={addToast}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`toast-enter px-4 py-3 rounded-lg shadow-xl text-sm font-medium border pointer-events-auto max-w-sm ${
-              toast.type === 'success' ? 'bg-green-900/95 text-green-100 border-green-700' :
-              toast.type === 'error'   ? 'bg-red-900/95 text-red-100 border-red-700' :
-                                         'bg-slate-800 text-slate-100 border-slate-600'
-            }`}
+            className="toast-enter"
+            style={{
+              ...getStyle(toast.type),
+              padding: '10px 14px',
+              borderRadius: 6,
+              pointerEvents: 'auto',
+              maxWidth: 340,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              backdropFilter: 'blur(8px)',
+            }}
           >
-            <div className="flex items-center gap-2">
-              {toast.type === 'success' && <span className="text-green-400">✓</span>}
-              {toast.type === 'error'   && <span className="text-red-400">✗</span>}
+            <span style={{
+              fontFamily: 'var(--ff-data)',
+              fontSize: '0.55rem',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              color: getDotColor(toast.type),
+              flexShrink: 0,
+              textShadow: `0 0 6px ${getDotColor(toast.type)}`,
+            }}>
+              {getLabel(toast.type)}
+            </span>
+            <div style={{ width: '1px', height: 14, background: 'var(--cyan-border)', flexShrink: 0 }} />
+            <p style={{ fontFamily: 'var(--ff-ui)', fontSize: '0.78rem', color: 'var(--t1)', margin: 0, lineHeight: 1.4 }}>
               {toast.message}
-            </div>
+            </p>
           </div>
         ))}
       </div>

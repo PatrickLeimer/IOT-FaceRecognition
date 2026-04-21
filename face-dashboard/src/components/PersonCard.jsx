@@ -12,9 +12,7 @@ export default function PersonCard({ person, onFaceDeleted, onRenamed, onAddPhot
   const nameRef = useRef(null)
   const toast = useToast()
 
-  useEffect(() => {
-    loadFaces()
-  }, [person.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadFaces() }, [person.id]) // eslint-disable-line
 
   const loadFaces = async () => {
     setLoadingFaces(true)
@@ -57,43 +55,102 @@ export default function PersonCard({ person, onFaceDeleted, onRenamed, onAddPhot
     e.target.value = ''
   }
 
+  const initials = person.name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '??'
+
   return (
-    <div className={`bg-slate-800 border rounded-xl overflow-hidden transition-all ${
-      selectedForMerge ? 'border-teal-500 ring-2 ring-teal-500/30' : 'border-slate-700 hover:border-slate-600'
-    }`}>
-      {/* Card header */}
-      <div className="p-4 flex items-center gap-3 border-b border-slate-700">
-        {/* Merge checkbox */}
+    <div
+      className={`card-cyber${selectedForMerge ? ' card-cyber-selected' : ''}`}
+      style={{ overflow: 'hidden', transition: 'all 0.2s' }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '12px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        borderBottom: '1px solid var(--cyan-border)',
+        background: selectedForMerge ? 'rgba(0,229,255,0.04)' : 'transparent',
+      }}>
+        {/* Merge toggle */}
         <button
           onClick={() => onToggleMerge?.(person.id)}
-          className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-            selectedForMerge ? 'bg-teal-600 border-teal-600' : 'border-slate-600 hover:border-slate-400'
-          }`}
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 3,
+            border: `1.5px solid ${selectedForMerge ? 'var(--cyan)' : 'rgba(176,215,232,0.2)'}`,
+            background: selectedForMerge ? 'var(--cyan)' : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            boxShadow: selectedForMerge ? 'var(--cyan-glow-sm)' : 'none',
+          }}
           title="Select for merge"
         >
           {selectedForMerge && (
-            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5"/>
             </svg>
           )}
         </button>
 
-        {/* Name — click to edit */}
-        <div className="flex-1 min-w-0">
+        {/* Avatar */}
+        <div style={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, var(--bg-3), var(--bg-4))',
+          border: '1px solid var(--cyan-border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+          fontFamily: 'var(--ff-data)',
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          color: 'var(--cyan)',
+          letterSpacing: '0.05em',
+        }}>
+          {initials}
+        </div>
+
+        {/* Name */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           {editing ? (
             <input
               ref={nameRef}
               value={nameVal}
               onChange={e => setNameVal(e.target.value)}
               onBlur={handleRename}
-              onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') { setEditing(false); setNameVal(person.name) } }}
-              className="w-full bg-slate-700 border border-teal-500 rounded px-2 py-0.5 text-sm text-slate-100 focus:outline-none"
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleRename()
+                if (e.key === 'Escape') { setEditing(false); setNameVal(person.name) }
+              }}
+              className="input-cyber"
+              style={{ padding: '3px 8px', fontSize: '0.8rem', fontWeight: 600 }}
               autoFocus
             />
           ) : (
             <button
               onClick={() => { setEditing(true); setTimeout(() => nameRef.current?.select(), 50) }}
-              className="text-left text-sm font-semibold text-slate-100 hover:text-teal-400 transition-colors truncate w-full"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                fontFamily: 'var(--ff-ui)',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                color: 'var(--t1)',
+                cursor: 'pointer',
+                letterSpacing: '0.02em',
+                textAlign: 'left',
+                width: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--cyan)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--t1)'}
               title="Click to rename"
             >
               {person.name}
@@ -101,54 +158,73 @@ export default function PersonCard({ person, onFaceDeleted, onRenamed, onAddPhot
           )}
         </div>
 
-        {/* Face count badge */}
-        <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full shrink-0">
-          {faces.length} {faces.length === 1 ? 'face' : 'faces'}
+        {/* Face count */}
+        <span style={{
+          fontFamily: 'var(--ff-data)',
+          fontSize: '0.6rem',
+          color: 'var(--cyan)',
+          background: 'var(--cyan-10)',
+          border: '1px solid var(--cyan-border)',
+          padding: '2px 7px',
+          borderRadius: 3,
+          flexShrink: 0,
+          letterSpacing: '0.06em',
+        }}>
+          {faces.length}
         </span>
       </div>
 
-      {/* Face thumbnails */}
-      <div className="p-3">
+      {/* Face grid */}
+      <div style={{ padding: '10px' }}>
         {loadingFaces ? (
-          <div className="grid grid-cols-4 gap-1.5">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="aspect-square bg-slate-700/50 rounded-md animate-pulse" />
+              <div key={i} style={{
+                aspectRatio: '1',
+                background: 'var(--bg-1)',
+                borderRadius: 4,
+                animation: 'shimmerSlide 1.5s linear infinite',
+              }} />
             ))}
           </div>
         ) : faces.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-4">No face photos yet</p>
+          <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t4)', textAlign: 'center', padding: '16px 0', letterSpacing: '0.08em' }}>
+            NO_FACE_DATA
+          </p>
         ) : (
-          <div className="grid grid-cols-4 gap-1.5">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
             {faces.map(face => (
-              <div key={face.id} className="relative group aspect-square">
+              <div key={face.id} className="face-thumb" style={{ aspectRatio: '1' }}>
                 <img
                   src={resolveImageUrl(face.imageUrl)}
                   alt=""
                   loading="lazy"
-                  className="w-full h-full object-cover rounded-md border border-slate-700"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   onError={e => { e.currentTarget.style.display = 'none' }}
                 />
-                {/* Delete overlay */}
-                <button
+                <div
+                  className="delete-overlay"
                   onClick={() => handleDeleteFace(face.id)}
-                  className="absolute inset-0 flex items-center justify-center bg-red-900/80 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Remove face"
                 >
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
                   </svg>
-                </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Add photos button */}
-      <div className="px-3 pb-3">
-        <label className="flex items-center justify-center gap-1.5 w-full py-2 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 cursor-pointer transition-colors">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+      {/* Add photos */}
+      <div style={{ padding: '0 10px 10px' }}>
+        <label
+          className="btn-cyber btn-cyber-ghost"
+          style={{ width: '100%', padding: '7px', cursor: 'pointer' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14"/>
           </svg>
           Add Photos
           <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddPhotos} />

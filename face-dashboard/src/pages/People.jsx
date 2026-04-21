@@ -5,11 +5,29 @@ import { BACKEND_URL } from '../utils'
 import { useToast } from '../context/ToastContext'
 import PersonCard from '../components/PersonCard'
 
+const PlusIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+)
+
+const SearchIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+  </svg>
+)
+
+const MergeIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 6l4 4-4 4M16 6l-4 4 4 4"/>
+  </svg>
+)
+
 export default function People() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [mergeSelected, setMergeSelected] = useState([]) // up to 2 IDs
+  const [mergeSelected, setMergeSelected] = useState([])
   const [merging, setMerging] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newName, setNewName] = useState('')
@@ -44,12 +62,10 @@ export default function People() {
 
     setMerging(true)
     try {
-      // Copy all faces from source to target
       const facesSnap = await getDocs(collection(db, 'users', sourceId, 'faces'))
       await Promise.all(facesSnap.docs.map(faceDoc =>
         setDoc(doc(db, 'users', targetId, 'faces', faceDoc.id), faceDoc.data())
       ))
-      // Delete source user document
       await deleteDoc(doc(db, 'users', sourceId))
       setMergeSelected([])
       toast(`Merged "${source?.name}" into "${target?.name}"`, 'success')
@@ -108,36 +124,46 @@ export default function People() {
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 justify-between">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
         <div>
-          <h1 className="text-xl font-bold text-slate-100">People</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage enrolled users and their face photos</p>
+          <p className="section-label" style={{ marginBottom: 6 }}>// SUBJECT_DATABASE</p>
+          <h1 style={{
+            fontFamily: 'var(--ff-ui)',
+            fontWeight: 800,
+            fontSize: '1.4rem',
+            letterSpacing: '0.05em',
+            color: 'var(--t1)',
+            margin: 0,
+          }}>
+            Enrolled Subjects
+          </h1>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-lg text-sm font-medium text-white transition-colors"
+          className="btn-cyber btn-cyber-primary"
+          style={{ padding: '9px 16px', fontSize: '0.72rem' }}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Add Person
+          <PlusIcon />
+          New Subject
         </button>
       </div>
 
-      {/* Search + merge bar */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-48">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+      {/* Search + merge */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--t3)', pointerEvents: 'none' }}>
+            <SearchIcon />
+          </div>
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search people…"
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            placeholder="Search subjects…"
+            className="input-cyber"
+            style={{ paddingLeft: 32 }}
           />
         </div>
 
@@ -145,57 +171,88 @@ export default function People() {
           <button
             onClick={handleMerge}
             disabled={merging}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg text-sm font-medium text-white transition-colors"
+            className="btn-cyber btn-cyber-amber"
+            style={{ padding: '9px 14px', fontSize: '0.7rem' }}
           >
+            <MergeIcon />
             {merging ? 'Merging…' : `Merge: ${users.find(u => u.id === mergeSelected[0])?.name} → ${users.find(u => u.id === mergeSelected[1])?.name}`}
           </button>
         )}
         {mergeSelected.length > 0 && !merging && (
-          <button onClick={() => setMergeSelected([])} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+          <button
+            onClick={() => setMergeSelected([])}
+            className="btn-cyber btn-cyber-ghost"
+            style={{ padding: '9px 12px' }}
+          >
             Cancel
           </button>
         )}
       </div>
 
       {mergeSelected.length === 1 && (
-        <p className="text-sm text-slate-500">Select one more person to merge with <span className="text-slate-300">{users.find(u => u.id === mergeSelected[0])?.name}</span></p>
+        <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.65rem', color: 'var(--t3)', letterSpacing: '0.06em', marginTop: -14 }}>
+          Select one more subject to merge with <span style={{ color: 'var(--cyan)' }}>{users.find(u => u.id === mergeSelected[0])?.name}</span>
+        </p>
       )}
 
       {/* Add person form */}
       {showAddForm && (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4 fade-in">
-          <h2 className="text-sm font-semibold text-slate-100">New Person</h2>
-          <div className="space-y-3">
+        <div
+          className="card-cyber fade-in"
+          style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <p className="section-label">// NEW_SUBJECT</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <input
               type="text"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              placeholder="Full name"
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Subject name"
+              className="input-cyber"
             />
-            <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-600 rounded-lg p-6 cursor-pointer hover:border-slate-500 transition-colors">
-              <svg className="w-8 h-8 text-slate-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <label
+              className="dropzone-cyber"
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px', textAlign: 'center', cursor: 'pointer' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" style={{ color: 'var(--t3)' }}>
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
               </svg>
-              <span className="text-sm text-slate-400">
-                {newFiles.length > 0 ? `${newFiles.length} photo(s) selected` : 'Click to select photos'}
+              <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.65rem', color: 'var(--t3)', letterSpacing: '0.08em' }}>
+                {newFiles.length > 0 ? `${newFiles.length} photo(s) staged` : 'Click to select photos'}
               </span>
               <input type="file" accept="image/*" multiple className="hidden" onChange={e => setNewFiles(Array.from(e.target.files))} />
             </label>
             {newFiles.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {newFiles.map((f, i) => (
-                  <img key={i} src={URL.createObjectURL(f)} alt="" className="w-12 h-12 rounded object-cover border border-slate-700" />
+                  <img
+                    key={i}
+                    src={URL.createObjectURL(f)}
+                    alt=""
+                    style={{ width: 44, height: 44, borderRadius: 4, objectFit: 'cover', border: '1px solid var(--cyan-border)' }}
+                  />
                 ))}
               </div>
             )}
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => { setShowAddForm(false); setNewName(''); setNewFiles([]) }} className="flex-1 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors">
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => { setShowAddForm(false); setNewName(''); setNewFiles([]) }}
+              className="btn-cyber btn-cyber-ghost"
+              style={{ flex: 1, padding: '9px' }}
+            >
               Cancel
             </button>
-            <button onClick={handleAddPerson} disabled={adding} className="flex-1 py-2 text-sm bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-lg text-white font-medium transition-colors">
-              {adding ? 'Uploading…' : 'Add Person'}
+            <button
+              onClick={handleAddPerson}
+              disabled={adding}
+              className="btn-cyber btn-cyber-primary"
+              style={{ flex: 1, padding: '9px' }}
+            >
+              {adding ? 'Uploading…' : 'Enroll Subject'}
             </button>
           </div>
         </div>
@@ -205,39 +262,60 @@ export default function People() {
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-slate-800 border border-slate-700 rounded-xl p-4 animate-pulse">
-              <div className="h-4 bg-slate-700 rounded w-1/2 mb-3" />
-              <div className="grid grid-cols-4 gap-1.5">
-                {[...Array(4)].map((_, j) => <div key={j} className="aspect-square bg-slate-700 rounded-md" />)}
+            <div key={i} className="card-cyber" style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ height: 10, background: 'var(--bg-3)', borderRadius: 3, width: '50%' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} style={{ aspectRatio: '1', background: 'var(--bg-1)', borderRadius: 4 }} />
+                ))}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty */}
       {!loading && filtered.length === 0 && (
-        <div className="text-center py-24 space-y-3">
-          <svg className="w-16 h-16 text-slate-700 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <p className="text-slate-400 font-medium">{search ? 'No results' : 'No people enrolled yet'}</p>
-          {!search && <p className="text-slate-600 text-sm">Click "Add Person" to enroll someone</p>}
+        <div style={{ textAlign: 'center', padding: '80px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 72,
+            height: 72,
+            borderRadius: '50%',
+            border: '1px solid var(--cyan-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--t4)',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+          </div>
+          <div>
+            <p style={{ fontWeight: 700, color: 'var(--t2)', letterSpacing: '0.05em', margin: '0 0 6px' }}>
+              {search ? 'No matching subjects' : 'No subjects enrolled'}
+            </p>
+            {!search && (
+              <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.63rem', color: 'var(--t4)', letterSpacing: '0.06em' }}>
+                Add a subject to begin recognition
+              </p>
+            )}
+          </div>
         </div>
       )}
 
-      {/* People grid */}
+      {/* Grid */}
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(user => (
-            <PersonCard
-              key={user.id}
-              person={user}
-              selectedForMerge={mergeSelected.includes(user.id)}
-              onToggleMerge={toggleMerge}
-              onAddPhotos={handleAddPhotos}
-              onRenamed={handleRenamed}
-            />
+          {filtered.map((user, i) => (
+            <div key={user.id} className={`stagger-${Math.min(i + 1, 6)}`}>
+              <PersonCard
+                person={user}
+                selectedForMerge={mergeSelected.includes(user.id)}
+                onToggleMerge={toggleMerge}
+                onAddPhotos={handleAddPhotos}
+                onRenamed={handleRenamed}
+              />
+            </div>
           ))}
         </div>
       )}
