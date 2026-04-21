@@ -4,6 +4,7 @@ import { db } from '../firebase'
 import { BACKEND_URL } from '../utils'
 import { useToast } from '../context/ToastContext'
 import PersonCard from '../components/PersonCard'
+import { RELATIONSHIP_GROUPS } from '../components/PersonCard'
 
 const PlusIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -31,6 +32,7 @@ export default function People() {
   const [merging, setMerging] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newRelationship, setNewRelationship] = useState('')
   const [newFiles, setNewFiles] = useState([])
   const [adding, setAdding] = useState(false)
   const toast = useToast()
@@ -93,9 +95,16 @@ export default function People() {
           if (data.user_id) userId = data.user_id
         }
       }
-      toast(`Added "${newName.trim()}" with ${newFiles.length} photo(s)`, 'success')
+      // Save relationship if set
+      if (newRelationship && userId) {
+        await import('firebase/firestore').then(({ updateDoc, doc }) =>
+          updateDoc(doc(db, 'users', userId), { relationship: newRelationship })
+        ).catch(() => {})
+      }
+      toast(`Added "${newName.trim()}"${newRelationship ? ` (${newRelationship})` : ''} with ${newFiles.length} photo(s)`, 'success')
       setShowAddForm(false)
       setNewName('')
+      setNewRelationship('')
       setNewFiles([])
     } catch {
       toast('Failed to add person', 'error')
@@ -212,6 +221,69 @@ export default function People() {
               placeholder="Subject name"
               className="input-cyber"
             />
+
+            {/* Relationship picker inline */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontFamily: 'var(--ff-data)', fontSize: '0.58rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--t3)' }}>
+                Relationship <span style={{ color: 'var(--t4)' }}>(optional)</span>
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {RELATIONSHIP_GROUPS.map(group => (
+                  <div key={group.label}>
+                    <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.54rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: group.color, marginBottom: 5, opacity: 0.7 }}>
+                      {group.label}
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {group.options.map(opt => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setNewRelationship(newRelationship === opt ? '' : opt)}
+                          style={{
+                            fontFamily: 'var(--ff-ui)',
+                            fontSize: '0.68rem',
+                            padding: '4px 9px',
+                            borderRadius: 3,
+                            border: `1px solid ${newRelationship === opt ? group.color : group.border}`,
+                            background: newRelationship === opt ? group.bg : 'transparent',
+                            color: newRelationship === opt ? group.color : 'var(--t2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                            boxShadow: newRelationship === opt ? `0 0 8px ${group.color}40` : 'none',
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {/* Custom field */}
+                {!RELATIONSHIP_GROUPS.flatMap(g => g.options).includes(newRelationship) && newRelationship && (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '3px 8px', borderRadius: 3,
+                    border: '1px solid rgba(167,139,250,0.3)',
+                    background: 'rgba(167,139,250,0.08)',
+                    color: '#A78BFA',
+                    fontFamily: 'var(--ff-data)', fontSize: '0.65rem',
+                  }}>
+                    {newRelationship}
+                    <button onClick={() => setNewRelationship('')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="text"
+                    placeholder="Or type a custom relationship…"
+                    className="input-cyber"
+                    style={{ flex: 1, fontSize: '0.72rem', padding: '5px 9px' }}
+                    onKeyDown={e => { if (e.key === 'Enter' && e.currentTarget.value.trim()) { setNewRelationship(e.currentTarget.value.trim()); e.currentTarget.value = '' } }}
+                  />
+                </div>
+              </div>
+            </div>
+
             <label
               className="dropzone-cyber"
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px', textAlign: 'center', cursor: 'pointer' }}
@@ -240,7 +312,7 @@ export default function People() {
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
-              onClick={() => { setShowAddForm(false); setNewName(''); setNewFiles([]) }}
+              onClick={() => { setShowAddForm(false); setNewName(''); setNewRelationship(''); setNewFiles([]) }}
               className="btn-cyber btn-cyber-ghost"
               style={{ flex: 1, padding: '9px' }}
             >
