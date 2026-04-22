@@ -9,7 +9,7 @@ export default function Enroll() {
   const [selectedUserId, setSelectedUserId] = useState('')
   const [useExisting, setUseExisting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const [progress, setProgress] = useState(null) // { current, total, results }
+  const [progress, setProgress] = useState(null)
   const [done, setDone] = useState(false)
   const inputRef = useRef(null)
   const toast = useToast()
@@ -89,61 +89,144 @@ export default function Enroll() {
     setDone(false)
   }
 
+  const progressPct = progress ? (progress.current / progress.total) * 100 : 0
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-100">Enroll New Face</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Upload face photos to register someone in the system</p>
+        <p className="section-label" style={{ marginBottom: 6 }}>// BIOMETRIC_ENROLLMENT</p>
+        <h1 style={{
+          fontFamily: 'var(--ff-ui)',
+          fontWeight: 800,
+          fontSize: '1.4rem',
+          letterSpacing: '0.05em',
+          color: 'var(--t1)',
+          margin: 0,
+        }}>
+          Enroll New Subject
+        </h1>
+        <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.65rem', color: 'var(--t3)', marginTop: 6, letterSpacing: '0.06em' }}>
+          Upload face photos to register a subject in the recognition system
+        </p>
       </div>
 
       {/* Tips */}
-      <div className="bg-teal-900/30 border border-teal-700/40 rounded-xl p-4 text-sm text-teal-300 space-y-1">
-        <p className="font-medium text-teal-200">Tips for best results</p>
-        <ul className="space-y-0.5 text-teal-400 list-disc list-inside">
-          <li>Upload 5–10 photos per person</li>
-          <li>Use different angles, lighting, and expressions</li>
-          <li>Make sure the face is clearly visible and unobstructed</li>
-          <li>Avoid extreme filters or heavy makeup</li>
+      <div className="tips-panel">
+        <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--cyan)', marginBottom: 10 }}>
+          Optimal Capture Guidelines
+        </p>
+        <ul style={{ display: 'flex', flexDirection: 'column', gap: 5, margin: 0, padding: 0, listStyle: 'none' }}>
+          {[
+            'Upload 5–10 photos per subject for best accuracy',
+            'Vary angles, lighting conditions, and expressions',
+            'Ensure the face is clearly visible and unobstructed',
+            'Avoid extreme filters, heavy makeup, or occlusion',
+          ].map((tip, i) => (
+            <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <span style={{ color: 'var(--cyan)', fontFamily: 'var(--ff-data)', fontSize: '0.6rem', marginTop: 1 }}>›</span>
+              <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.65rem', color: 'var(--t2)', letterSpacing: '0.04em' }}>{tip}</span>
+            </li>
+          ))}
         </ul>
       </div>
 
       {done ? (
-        /* Success / results view */
-        <div className="space-y-4 fade-in">
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-3">
-            <h2 className="font-semibold text-slate-100">Upload Complete</h2>
-            <div className="space-y-2">
+        /* Results */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="card-cyber" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--cyan)', textTransform: 'uppercase' }}>
+              Enrollment Complete
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {progress?.results.map((r, i) => (
-                <div key={i} className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${r.ok ? 'bg-green-900/30 text-green-300' : 'bg-red-900/30 text-red-300'}`}>
-                  <span>{r.ok ? '✓' : '✗'}</span>
-                  <span className="truncate flex-1">{r.file}</span>
-                  {!r.ok && <span className="text-xs text-red-400">{r.err}</span>}
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 4,
+                    border: `1px solid ${r.ok ? 'var(--green-border)' : 'var(--red-border)'}`,
+                    background: r.ok ? 'var(--green-08)' : 'var(--red-08)',
+                  }}
+                >
+                  <span style={{
+                    fontFamily: 'var(--ff-data)',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    color: r.ok ? 'var(--green)' : 'var(--red)',
+                    flexShrink: 0,
+                  }}>
+                    {r.ok ? 'OK' : 'ERR'}
+                  </span>
+                  <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.62rem', color: 'var(--t2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.file}
+                  </span>
+                  {!r.ok && (
+                    <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--red)', flexShrink: 0 }}>
+                      {r.err}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
           </div>
-          <button onClick={handleReset} className="w-full py-3 bg-teal-600 hover:bg-teal-500 rounded-xl text-white font-medium transition-colors">
-            Enroll Another Person
+          <button
+            onClick={handleReset}
+            className="btn-cyber btn-cyber-primary"
+            style={{ padding: '12px', fontSize: '0.75rem', width: '100%' }}
+          >
+            + Enroll Another Subject
           </button>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
           {/* Drop zone */}
           <div
+            className={`dropzone-cyber${dragOver ? ' drag-over' : ''}`}
             onDrop={handleDrop}
             onDragOver={e => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onClick={() => inputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${
-              dragOver ? 'border-teal-400 bg-teal-900/20' : 'border-slate-600 hover:border-slate-500'
-            }`}
+            style={{
+              padding: '40px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10,
+            }}
           >
-            <svg className="w-12 h-12 text-slate-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-slate-300 font-medium">Drop photos here or click to browse</p>
-            <p className="text-slate-500 text-sm mt-1">Supports JPG, PNG, WEBP — multiple files</p>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              border: `1px solid ${dragOver ? 'var(--cyan)' : 'var(--cyan-border)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: dragOver ? 'var(--cyan)' : 'var(--t3)',
+              transition: 'all 0.2s',
+              boxShadow: 'none',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div>
+              <p style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--t1)', margin: '0 0 4px', letterSpacing: '0.03em' }}>
+                Drop photos here or click to browse
+              </p>
+              <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t4)', letterSpacing: '0.06em' }}>
+                JPG · PNG · WEBP — multiple files supported
+              </p>
+            </div>
             <input
               ref={inputRef}
               type="file"
@@ -154,71 +237,90 @@ export default function Enroll() {
             />
           </div>
 
-          {/* Preview thumbnails */}
+          {/* Thumbnails */}
           {files.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-400">{files.length} photo(s) selected</p>
-                <button onClick={() => setFiles([])} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">Clear all</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.62rem', color: 'var(--t3)', letterSpacing: '0.08em' }}>
+                  {files.length} photo(s) staged
+                </span>
+                <button
+                  onClick={() => setFiles([])}
+                  className="btn-cyber btn-cyber-ghost"
+                  style={{ padding: '3px 10px', fontSize: '0.6rem' }}
+                >
+                  Clear All
+                </button>
               </div>
-              <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', gap: 8 }}>
                 {files.map((f, i) => (
-                  <div key={i} className="relative group aspect-square">
-                    <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover rounded-lg border border-slate-700" />
-                    <button
-                      onClick={() => removeFile(i)}
-                      className="absolute inset-0 flex items-center justify-center bg-red-900/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  <div
+                    key={i}
+                    className="face-thumb"
+                    style={{ aspectRatio: '1', cursor: 'pointer' }}
+                    onClick={() => removeFile(i)}
+                  >
+                    <img
+                      src={URL.createObjectURL(f)}
+                      alt=""
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    <div className="delete-overlay">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M18 6L6 18M6 6l12 12"/>
                       </svg>
-                    </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Name / person selection */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-            <div className="flex gap-3">
-              <button
-                onClick={() => setUseExisting(false)}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${!useExisting ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                New person
-              </button>
-              <button
-                onClick={() => setUseExisting(true)}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${useExisting ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                Existing person
-              </button>
+          {/* Person selection */}
+          <div className="card-cyber" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['New subject', 'Existing subject'].map((label, i) => (
+                <button
+                  key={label}
+                  onClick={() => setUseExisting(i === 1)}
+                  className={`btn-cyber ${(i === 1) === useExisting ? 'btn-cyber-primary' : 'btn-cyber-ghost'}`}
+                  style={{ padding: '6px 14px', fontSize: '0.68rem' }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {!useExisting ? (
-              <div className="space-y-1">
-                <label className="text-sm text-slate-400">Full name</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  Full Name
+                </label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Sarah"
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="e.g. Sarah Chen"
+                  className="input-cyber"
                 />
               </div>
             ) : (
-              <div className="space-y-1">
-                <label className="text-sm text-slate-400">Select person</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  Select Subject
+                </label>
                 {existingUsers.length === 0 ? (
-                  <p className="text-sm text-slate-500">No enrolled users found — create a new person instead</p>
+                  <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.63rem', color: 'var(--t4)' }}>
+                    No enrolled subjects found — create a new one
+                  </p>
                 ) : (
                   <select
                     value={selectedUserId}
                     onChange={e => setSelectedUserId(e.target.value)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="input-cyber"
+                    style={{ fontFamily: 'var(--ff-ui)' }}
                   >
-                    <option value="">— Select a person —</option>
+                    <option value="">— Select a subject —</option>
                     {existingUsers.map(u => (
                       <option key={u.id ?? u.user_id} value={u.id ?? u.user_id}>{u.name}</option>
                     ))}
@@ -228,18 +330,19 @@ export default function Enroll() {
             )}
           </div>
 
-          {/* Progress bar */}
+          {/* Progress */}
           {progress && !done && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">Uploading…</span>
-                <span className="text-slate-300 font-medium">{progress.current}/{progress.total}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', letterSpacing: '0.1em' }}>
+                  UPLOADING
+                </span>
+                <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.65rem', color: 'var(--cyan)', fontWeight: 700 }}>
+                  {progress.current} / {progress.total}
+                </span>
               </div>
-              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-teal-500 rounded-full transition-all duration-300"
-                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                />
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${progressPct}%` }} />
               </div>
             </div>
           )}
@@ -248,11 +351,12 @@ export default function Enroll() {
           <button
             onClick={handleSubmit}
             disabled={!!progress && !done}
-            className="w-full py-3 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-xl text-white font-medium transition-colors text-sm"
+            className="btn-cyber btn-cyber-primary"
+            style={{ padding: '14px', fontSize: '0.75rem', width: '100%', borderRadius: 6 }}
           >
             {progress && !done
-              ? `Uploading ${progress.current}/${progress.total}…`
-              : `Enroll ${files.length > 0 ? `${files.length} photo(s)` : ''}`}
+              ? `Processing ${progress.current}/${progress.total}…`
+              : `Enroll${files.length > 0 ? ` ${files.length} Photo${files.length !== 1 ? 's' : ''}` : ''}`}
           </button>
         </div>
       )}

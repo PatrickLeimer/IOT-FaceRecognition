@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { BACKEND_URL, resolveImageUrl } from '../utils' // resolveImageUrl used for image preview
+import { BACKEND_URL, resolveImageUrl } from '../utils'
 import { useToast } from '../context/ToastContext'
 
-/**
- * mode: 'correct'  — correct a wrong identification (shows user list)
- *       'enroll'   — enroll an unknown person (name input + user list)
- */
 export default function CorrectionModal({ isOpen, onClose, event, mode = 'correct', onSuccess }) {
   const [tab, setTab] = useState(mode === 'enroll' ? 'new' : 'existing')
   const [users, setUsers] = useState([])
@@ -29,7 +25,7 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
   if (!isOpen || !event) return null
 
   const handleSubmit = async () => {
-    if (tab === 'existing' && !selectedUserId) { toast('Select a person', 'error'); return }
+    if (tab === 'existing' && !selectedUserId) { toast('Select a subject', 'error'); return }
     if (tab === 'new' && !newName.trim()) { toast('Enter a name', 'error'); return }
 
     setLoading(true)
@@ -44,8 +40,6 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
           const err = await res.json().catch(() => ({}))
           throw new Error(err.detail ?? 'Correction failed')
         }
-
-        // Backend already writes to Firestore via correct_event(); mirror locally for instant UI update
         await updateDoc(doc(db, 'events', event.id), {
           status: 'corrected',
           correctedName: user?.name ?? '',
@@ -54,22 +48,16 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
         })
         toast('Correction saved', 'success')
       } else {
-        // New person — backend fetches the image server-side (avoids CORS)
         const name = newName.trim()
         const form = new FormData()
         form.append('name', name)
-        const enrollRes = await fetch(`${BACKEND_URL}/enroll-from-event/${event.id}`, {
-          method: 'POST',
-          body: form,
-        })
+        const enrollRes = await fetch(`${BACKEND_URL}/enroll-from-event/${event.id}`, { method: 'POST', body: form })
         if (!enrollRes.ok) {
           const err = await enrollRes.json().catch(() => ({}))
           throw new Error(err.detail ?? 'Enrollment failed')
         }
         const enrollData = await enrollRes.json()
         const enrolledUserId = enrollData.user_id ?? ''
-
-        // Firestore is already updated by the backend, but sync locally too
         await updateDoc(doc(db, 'events', event.id), {
           status: 'corrected',
           correctedName: name,
@@ -78,7 +66,6 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
         })
         toast(`Enrolled "${name}" successfully`, 'success')
       }
-
       onSuccess?.()
       onClose()
     } catch (err) {
@@ -90,68 +77,134 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+      }}
+    >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(2, 5, 7, 0.85)',
+        }}
+        onClick={onClose}
+      />
 
-      <div className="relative bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-md fade-in">
+      <div
+        className="modal-cyber"
+        style={{ position: 'relative', width: '100%', maxWidth: 440 }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-100">
-            {mode === 'enroll' ? 'Who is this person?' : 'Correct identification'}
-          </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--cyan-border)',
+        }}>
+          <div>
+            <p className="section-label" style={{ marginBottom: 4 }}>
+              {mode === 'enroll' ? '// ENROLL_SUBJECT' : '// CORRECT_ID'}
+            </p>
+            <h2 style={{
+              fontFamily: 'var(--ff-ui)',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              letterSpacing: '0.04em',
+              color: 'var(--t1)',
+              margin: 0,
+            }}>
+              {mode === 'enroll' ? 'Who is this person?' : 'Correct identification'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: '1px solid var(--cyan-border)',
+              borderRadius: 4,
+              width: 28,
+              height: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--t3)',
+              cursor: 'pointer',
+              transition: 'border-color 0.15s, color 0.15s',
+              flexShrink: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--cyan-border)'; e.currentTarget.style.color = 'var(--t3)' }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
           </button>
         </div>
 
         {/* Event preview */}
         {event.imageUrl && (
-          <div className="px-5 pt-4">
-            <img
-              src={resolveImageUrl(event.imageUrl)}
-              alt="Event"
-              className="w-24 h-24 rounded-lg object-cover border border-slate-700"
-            />
+          <div style={{ padding: '16px 20px 0' }}>
+            <div style={{ display: 'inline-block', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--cyan-border)' }}>
+              <img
+                src={resolveImageUrl(event.imageUrl)}
+                alt="Event"
+                style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }}
+              />
+            </div>
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 px-5 pt-4">
-          <button
-            onClick={() => setTab('existing')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${tab === 'existing' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            Select person
-          </button>
-          <button
-            onClick={() => setTab('new')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${tab === 'new' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            New person
-          </button>
+        <div style={{ display: 'flex', gap: 8, padding: '14px 20px 0' }}>
+          {['existing', 'new'].map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`btn-cyber ${tab === t ? 'btn-cyber-primary' : 'btn-cyber-ghost'}`}
+              style={{ padding: '6px 14px', fontSize: '0.68rem' }}
+            >
+              {t === 'existing' ? 'Select person' : 'New person'}
+            </button>
+          ))}
         </div>
 
         {/* Body */}
-        <div className="p-5 space-y-3">
+        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {tab === 'existing' ? (
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Select the correct person</label>
-              <div className="max-h-52 overflow-y-auto space-y-1 rounded-lg border border-slate-700 p-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                Select correct subject
+              </label>
+              <div style={{
+                maxHeight: 200,
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                border: '1px solid var(--cyan-border)',
+                borderRadius: 6,
+                padding: 6,
+                background: 'var(--bg-1)',
+              }}>
                 {users.length === 0 && (
-                  <p className="text-sm text-slate-500 text-center py-4">No enrolled users yet</p>
+                  <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.62rem', color: 'var(--t4)', textAlign: 'center', padding: '20px 0' }}>
+                    No enrolled subjects
+                  </p>
                 )}
                 {users.map(user => (
                   <button
                     key={user.id}
                     onClick={() => setSelectedUserId(user.id)}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                      selectedUserId === user.id
-                        ? 'bg-teal-600/30 text-teal-300 border border-teal-600/50'
-                        : 'text-slate-300 hover:bg-slate-700'
-                    }`}
+                    className={`person-select-row${selectedUserId === user.id ? ' selected' : ''}`}
                   >
                     {user.name}
                   </button>
@@ -159,15 +212,17 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Person's name</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                Subject name
+              </label>
               <input
                 type="text"
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                placeholder="e.g. Sarah"
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="e.g. Sarah Chen"
+                className="input-cyber"
                 autoFocus
               />
             </div>
@@ -175,16 +230,21 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-5 pb-5">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors">
+        <div style={{ display: 'flex', gap: 10, padding: '0 20px 20px' }}>
+          <button
+            onClick={onClose}
+            className="btn-cyber btn-cyber-ghost"
+            style={{ flex: 1, padding: '10px' }}
+          >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 px-4 py-2 text-sm bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-lg text-white font-medium transition-colors"
+            className="btn-cyber btn-cyber-primary"
+            style={{ flex: 1, padding: '10px' }}
           >
-            {loading ? 'Saving…' : 'Confirm'}
+            {loading ? 'Processing…' : 'Confirm'}
           </button>
         </div>
       </div>

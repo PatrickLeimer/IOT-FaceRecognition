@@ -7,15 +7,40 @@ import CorrectionModal from './CorrectionModal'
 
 function FacePlaceholder() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-slate-700/50">
-      <svg className="w-16 h-16 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-1)' }}>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--t4)' }}>
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1"/>
+        <path d="M8 7h.01M16 7h.01M10 10s.5 1 2 1 2-1 2-1" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
       </svg>
     </div>
   )
 }
 
-export default function EventCard({ event, isNew }) {
+function getBadgeClass(status) {
+  if (status === 'recognized') return 'badge-cyber badge-recognized'
+  if (status === 'needs_review') return 'badge-cyber badge-needs_review'
+  if (status === 'unknown') return 'badge-cyber badge-unknown'
+  if (status === 'corrected') return 'badge-cyber badge-corrected'
+  return 'badge-cyber badge-no_face'
+}
+
+function getBadgeLabel(status) {
+  if (status === 'recognized') return 'Identified'
+  if (status === 'needs_review') return 'Review'
+  if (status === 'unknown') return 'Unknown'
+  if (status === 'corrected') return 'Corrected'
+  return 'No Face'
+}
+
+function getConfClass(confidence) {
+  if (confidence == null) return ''
+  if (confidence >= 0.75) return 'conf-high'
+  if (confidence >= 0.5) return 'conf-medium'
+  return 'conf-low'
+}
+
+export default function EventCard({ event }) {
   const [imgError, setImgError] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState('correct')
@@ -23,13 +48,11 @@ export default function EventCard({ event, isNew }) {
   const toast = useToast()
 
   const { status, confidence, detectedName, correctedName, imageUrl, timestamp, id } = event
-  const { label, cls } = getStatusInfo(status)
-  const confColor = getConfidenceColor(confidence)
   const imgSrc = resolveImageUrl(imageUrl)
 
   const displayName = status === 'corrected'
     ? correctedName ?? detectedName
-    : detectedName ?? 'Unknown Person'
+    : detectedName ?? 'Unknown'
 
   const handleConfirm = async () => {
     setConfirming(true)
@@ -46,91 +69,127 @@ export default function EventCard({ event, isNew }) {
   const openCorrect = () => { setModalMode('correct'); setModalOpen(true) }
   const openEnroll  = () => { setModalMode('enroll');  setModalOpen(true) }
 
+  const confPct = confidence != null ? Math.max(0, Math.round(confidence * 100)) : null
+
   return (
     <>
-      <div className={`bg-slate-800 border border-slate-700 rounded-xl overflow-hidden flex flex-col transition-shadow hover:border-slate-600 ${isNew ? 'new-event-flash' : ''}`}>
-        {/* Image */}
-        <div className="relative aspect-square bg-slate-700">
+      <div className="card-cyber flex flex-col" style={{ overflow: 'hidden' }}>
+        {/* Image area */}
+        <div style={{ position: 'relative', aspectRatio: '1', background: 'var(--bg-1)' }}>
           {imgSrc && !imgError ? (
             <img
               src={imgSrc}
               alt={displayName}
               loading="lazy"
               onError={() => setImgError(true)}
-              className="w-full h-full object-cover"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           ) : (
             <FacePlaceholder />
           )}
-            {/* Face bounding box */}
+
+          {/* Bounding box */}
           {event.facialArea && !imgError && imgSrc && (
             <div
-              className="absolute border-2 border-teal-400 rounded pointer-events-none"
               style={{
+                position: 'absolute',
                 left:   `${event.facialArea.x * 100}%`,
                 top:    `${event.facialArea.y * 100}%`,
                 width:  `${event.facialArea.w * 100}%`,
                 height: `${event.facialArea.h * 100}%`,
+                border: '1.5px solid var(--cyan)',
+                pointerEvents: 'none',
+                zIndex: 6,
               }}
             >
-              {/* Label on the box */}
-              <span className="absolute -top-5 left-0 text-xs bg-teal-500 text-white px-1.5 py-0.5 rounded whitespace-nowrap">
+              <span style={{
+                position: 'absolute',
+                top: -20,
+                left: 0,
+                fontFamily: 'var(--ff-data)',
+                fontSize: '0.55rem',
+                background: 'var(--cyan)',
+                color: '#000',
+                padding: '2px 6px',
+                whiteSpace: 'nowrap',
+                letterSpacing: '0.06em',
+              }}>
                 {displayName}
               </span>
             </div>
           )}
 
-          {/* Status badge overlay */}
-          <div className="absolute top-2 left-2">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>{label}</span>
+          {/* Status badge */}
+          <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 7 }}>
+            <span className={getBadgeClass(status)}>{getBadgeLabel(status)}</span>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-3 flex flex-col gap-2 flex-1">
-          {/* Name */}
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-semibold text-slate-100 text-sm leading-tight">{displayName}</p>
+        <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+          {/* Name + time */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--t1)', margin: 0, lineHeight: 1.3, letterSpacing: '0.02em' }}>
+                {displayName}
+              </p>
               {status === 'corrected' && detectedName && detectedName !== correctedName && (
-                <p className="text-xs text-slate-500 mt-0.5">{detectedName} → {correctedName}</p>
+                <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', marginTop: 3 }}>
+                  {detectedName} → {correctedName}
+                </p>
               )}
             </div>
-            <p className="text-xs text-slate-500 shrink-0">{formatRelativeTime(timestamp)}</p>
+            <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', flexShrink: 0, letterSpacing: '0.05em' }}>
+              {formatRelativeTime(timestamp)}
+            </p>
           </div>
 
-          {/* Confidence bar */}
-          {confidence != null && status !== 'no_face' && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Confidence</span>
-                <span className={`text-xs font-medium ${confColor.text}`}>{Math.max(0, Math.round(confidence * 100))}%</span>
+          {/* Confidence */}
+          {confPct != null && status !== 'no_face' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.58rem', color: 'var(--t3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  Confidence
+                </span>
+                <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.65rem', fontWeight: 700, color: confPct >= 75 ? 'var(--green)' : confPct >= 50 ? 'var(--amber)' : 'var(--red)' }}>
+                  {confPct}%
+                </span>
               </div>
-              <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="conf-bar-track">
                 <div
-                  className={`h-full rounded-full transition-all ${confColor.bar}`}
-                  style={{ width: `${Math.max(0, Math.round(confidence * 100))}%` }}
+                  className={`conf-bar-fill ${getConfClass(confidence)}`}
+                  style={{ width: `${confPct}%` }}
                 />
               </div>
             </div>
           )}
 
-          {/* Action area */}
-          <div className="mt-auto pt-1 space-y-2">
+          {/* Actions */}
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {status === 'needs_review' && (
-              <div className="bg-slate-700/50 rounded-lg p-2 space-y-1.5">
-                <p className="text-xs text-slate-300">Is this <span className="text-white font-medium">{detectedName}</span>?</p>
-                <div className="flex gap-1.5">
+              <div style={{
+                background: 'rgba(255, 184, 0, 0.05)',
+                border: '1px solid var(--amber-border)',
+                borderRadius: 4,
+                padding: '8px 10px',
+                display: 'flex', flexDirection: 'column', gap: 7,
+              }}>
+                <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t2)', margin: 0 }}>
+                  Is this <strong style={{ color: 'var(--t1)', fontFamily: 'var(--ff-ui)' }}>{detectedName}</strong>?
+                </p>
+                <div style={{ display: 'flex', gap: 6 }}>
                   <button
                     onClick={handleConfirm}
                     disabled={confirming}
-                    className="flex-1 text-xs py-1.5 bg-green-600/80 hover:bg-green-600 disabled:opacity-50 rounded-md text-white font-medium transition-colors"
+                    className="btn-cyber btn-cyber-green"
+                    style={{ flex: 1, padding: '6px 8px' }}
                   >
                     {confirming ? '…' : 'Confirm'}
                   </button>
                   <button
                     onClick={openCorrect}
-                    className="flex-1 text-xs py-1.5 bg-slate-600 hover:bg-slate-500 rounded-md text-slate-200 transition-colors"
+                    className="btn-cyber btn-cyber-ghost"
+                    style={{ flex: 1, padding: '6px 8px' }}
                   >
                     Correct
                   </button>
@@ -141,19 +200,32 @@ export default function EventCard({ event, isNew }) {
             {status === 'unknown' && (
               <button
                 onClick={openEnroll}
-                className="w-full text-xs py-2 bg-teal-600/80 hover:bg-teal-600 rounded-md text-white font-medium transition-colors"
+                className="btn-cyber btn-cyber-primary"
+                style={{ padding: '8px', width: '100%' }}
               >
-                Who is this? Enroll them
+                + Enroll this person
               </button>
             )}
 
-            {/* "This is wrong" — always visible except no_face */}
             {status !== 'no_face' && (
               <button
                 onClick={openCorrect}
-                className="w-full text-xs text-slate-500 hover:text-slate-300 transition-colors text-center"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontFamily: 'var(--ff-data)',
+                  fontSize: '0.58rem',
+                  color: 'var(--t4)',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  letterSpacing: '0.08em',
+                  padding: '2px',
+                  transition: 'color 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--t4)'}
               >
-                This is wrong
+                REPORT_ERROR
               </button>
             )}
           </div>

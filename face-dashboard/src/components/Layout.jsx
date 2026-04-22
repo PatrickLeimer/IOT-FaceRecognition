@@ -3,16 +3,29 @@ import { NavLink } from 'react-router-dom'
 import { BACKEND_URL } from '../utils'
 import { useToast } from '../context/ToastContext'
 
+const EyeIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/>
+    <circle cx="12" cy="12" r="1" fill="currentColor"/>
+  </svg>
+)
+
+const ReloadIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+  </svg>
+)
+
 export default function Layout({ children }) {
-  const [status, setStatus] = useState('checking') // 'online' | 'offline' | 'checking'
+  const [status, setStatus] = useState('checking')
+  const [reloading, setReloading] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/health`, {
-          signal: AbortSignal.timeout(3000),
-        })
+        const res = await fetch(`${BACKEND_URL}/health`, { signal: AbortSignal.timeout(3000) })
         setStatus(res.ok ? 'online' : 'offline')
       } catch {
         setStatus('offline')
@@ -24,70 +37,89 @@ export default function Layout({ children }) {
   }, [])
 
   const handleReload = async () => {
+    setReloading(true)
     try {
       const res = await fetch(`${BACKEND_URL}/reload`, { method: 'POST' })
-      if (res.ok) toast('Face encodings reloaded successfully', 'success')
+      if (res.ok) toast('Face encodings reloaded', 'success')
       else        toast('Reload failed — check backend logs', 'error')
     } catch {
       toast('Backend unreachable', 'error')
+    } finally {
+      setReloading(false)
     }
   }
 
   const navCls = ({ isActive }) =>
-    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-      isActive
-        ? 'bg-slate-700 text-white'
-        : 'text-slate-400 hover:text-white hover:bg-slate-700/60'
-    }`
+    `nav-link-cyber${isActive ? ' active' : ''}`
+
+  const statusColor = status === 'online' ? 'var(--green)' : status === 'offline' ? 'var(--red)' : 'var(--amber)'
+  const statusLabel = status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Connecting'
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
-      {/* Top nav */}
-      <nav className="bg-slate-800 border-b border-slate-700 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          {/* Brand + links */}
-          <div className="flex items-center gap-6 min-w-0">
-            <div className="flex items-center gap-2 shrink-0">
-              <svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A8.966 8.966 0 0112 15c2.21 0 4.232.8 5.879 2.115M15 11a3 3 0 11-6 0 3 3 0 016 0zm6.796 2.43C21.914 12.96 22 12.49 22 12a10 10 0 10-10 10c1.808 0 3.5-.48 4.963-1.32" />
-              </svg>
-              <span className="font-bold text-teal-400 text-lg tracking-tight">FaceGuard</span>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-0)', color: 'var(--t1)', fontFamily: 'var(--ff-ui)' }}>
+      <nav className="nav-cyber sticky top-0 z-30">
+        <div style={{ maxWidth: 1320, margin: '0 auto', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+
+          {/* Brand + Nav */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 28, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+              <div style={{ color: 'var(--cyan)' }}>
+                <EyeIcon />
+              </div>
+              <span style={{
+                fontFamily: 'var(--ff-ui)',
+                fontWeight: 800,
+                fontSize: '1.05rem',
+                letterSpacing: '0.18em',
+                color: 'var(--cyan)',
+                textTransform: 'uppercase',
+              }}>
+                FaceGuard
+              </span>
             </div>
-            <div className="flex items-center gap-1 overflow-x-auto">
-              <NavLink to="/" end className={navCls}>Live Feed</NavLink>
-              <NavLink to="/people"  className={navCls}>People</NavLink>
-              <NavLink to="/enroll"  className={navCls}>Enroll</NavLink>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto' }}>
+              <NavLink to="/"       end className={navCls}>Live Feed</NavLink>
+              <NavLink to="/people"     className={navCls}>People</NavLink>
+              <NavLink to="/enroll"     className={navCls}>Enroll</NavLink>
             </div>
           </div>
 
-          {/* Status + reload */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <span className={`w-2 h-2 rounded-full ${
-                status === 'online'   ? 'bg-green-400 shadow-[0_0_6px_#4ade80]' :
-                status === 'offline'  ? 'bg-red-400' :
-                                        'bg-yellow-400 animate-pulse'
-              }`} />
-              <span className="hidden sm:inline">
-                {status === 'online' ? 'Backend Online' : status === 'offline' ? 'Backend Offline' : 'Checking…'}
+          {/* Status + Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: statusColor,
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontFamily: 'var(--ff-data)',
+                fontSize: '0.6rem',
+                letterSpacing: '0.12em',
+                color: statusColor,
+              }}>
+                {statusLabel}
               </span>
             </div>
+
             <button
               onClick={handleReload}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 transition-colors"
+              disabled={reloading}
+              className="btn-cyber btn-cyber-ghost"
+              style={{ padding: '6px 12px' }}
               title="Reload face encodings from Firebase"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span className="hidden sm:inline">Reload Model</span>
+              <ReloadIcon />
+              <span className="hidden sm:inline">{reloading ? 'Reloading…' : 'Reload'}</span>
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Page content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main style={{ maxWidth: 1320, margin: '0 auto', padding: '28px 20px' }}>
         {children}
       </main>
     </div>
