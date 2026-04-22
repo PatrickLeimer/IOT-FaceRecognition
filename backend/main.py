@@ -210,6 +210,7 @@ async def enroll_from_event(
     )
 
     firebase_service.correct_event(event_id, user_id, name)
+    firebase_service.update_lcd_display(name=name, status="corrected")
 
     global known_users
     known_users = firebase_service.get_all_users_with_faces()
