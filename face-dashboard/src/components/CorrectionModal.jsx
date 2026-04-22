@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { BACKEND_URL, resolveImageUrl } from '../utils'
+import { BACKEND_URL, apiFetch, resolveImageUrl } from '../utils'
 import { useToast } from '../context/ToastContext'
 
 export default function CorrectionModal({ isOpen, onClose, event, mode = 'correct', onSuccess }) {
@@ -33,13 +33,11 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
       if (tab === 'existing') {
         const user = users.find(u => u.id === selectedUserId)
         const form = new FormData()
-        form.append('name', user?.name ?? '')
-        form.append('user_id', selectedUserId)
-        const res = await fetch(`${BACKEND_URL}/enroll-from-event/${event.id}`, { method: 'POST', body: form })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}))
-          throw new Error(err.detail ?? 'Correction failed')
-        }
+        form.append('correct_user_id', selectedUserId)
+        form.append('correct_name', user?.name ?? '')
+        await apiFetch(`${BACKEND_URL}/correct/${event.id}`, { method: 'POST', body: form })
+
+        // Update Firestore event
         await updateDoc(doc(db, 'events', event.id), {
           status: 'corrected',
           correctedName: user?.name ?? '',
@@ -51,7 +49,10 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
         const name = newName.trim()
         const form = new FormData()
         form.append('name', name)
-        const enrollRes = await fetch(`${BACKEND_URL}/enroll-from-event/${event.id}`, { method: 'POST', body: form })
+        const enrollRes = await apiFetch(`${BACKEND_URL}/enroll-from-event/${event.id}`, {
+          method: 'POST',
+          body: form,
+        })
         if (!enrollRes.ok) {
           const err = await enrollRes.json().catch(() => ({}))
           throw new Error(err.detail ?? 'Enrollment failed')

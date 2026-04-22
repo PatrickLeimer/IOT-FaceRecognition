@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { collection, onSnapshot, addDoc, deleteDoc, getDocs, doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, onSnapshot, deleteDoc, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { BACKEND_URL } from '../utils'
+import { BACKEND_URL, apiFetch } from '../utils'
 import { useToast } from '../context/ToastContext'
 import PersonCard from '../components/PersonCard'
 import { RELATIONSHIP_GROUPS } from '../components/PersonCard'
@@ -89,7 +89,7 @@ export default function People() {
         form.append('name', newName.trim())
         if (userId) form.append('user_id', userId)
         form.append('image', newFiles[i])
-        const res = await fetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
+        const res = await apiFetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
         if (res.ok) {
           const data = await res.json().catch(() => ({}))
           if (data.user_id) userId = data.user_id
@@ -120,7 +120,7 @@ export default function People() {
         form.append('name', person.name)
         form.append('user_id', person.id)
         form.append('image', file)
-        await fetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
+        await apiFetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
       }
       toast(`Added ${files.length} photo(s) to ${person.name}`, 'success')
     } catch {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BACKEND_URL } from '../utils'
+import { BACKEND_URL, apiFetch } from '../utils'
 import { useToast } from '../context/ToastContext'
 
 export default function Enroll() {
@@ -15,7 +15,7 @@ export default function Enroll() {
   const toast = useToast()
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/users`)
+    apiFetch(`${BACKEND_URL}/users`)
       .then(r => r.json())
       .then(data => setExistingUsers(Array.isArray(data) ? data : data.users ?? []))
       .catch(() => {})
@@ -59,7 +59,7 @@ export default function Enroll() {
       form.append('image', files[i])
 
       try {
-        const res = await fetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
+        const res = await apiFetch(`${BACKEND_URL}/enroll`, { method: 'POST', body: form })
         const data = await res.json().catch(() => ({}))
         if (res.ok) {
           if (data.user_id && !userId) userId = data.user_id

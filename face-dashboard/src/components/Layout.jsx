@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { BACKEND_URL } from '../utils'
+import { BACKEND_URL, apiFetch } from '../utils'
 import { useToast } from '../context/ToastContext'
 
 const EyeIcon = () => (
@@ -25,7 +25,9 @@ export default function Layout({ children }) {
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/health`, { signal: AbortSignal.timeout(3000) })
+        const res = await apiFetch(`${BACKEND_URL}/health`, {
+          signal: AbortSignal.timeout(3000),
+        })
         setStatus(res.ok ? 'online' : 'offline')
       } catch {
         setStatus('offline')
@@ -39,8 +41,8 @@ export default function Layout({ children }) {
   const handleReload = async () => {
     setReloading(true)
     try {
-      const res = await fetch(`${BACKEND_URL}/reload`, { method: 'POST' })
-      if (res.ok) toast('Face encodings reloaded', 'success')
+      const res = await apiFetch(`${BACKEND_URL}/reload`, { method: 'POST' })
+      if (res.ok) toast('Face encodings reloaded successfully', 'success')
       else        toast('Reload failed — check backend logs', 'error')
     } catch {
       toast('Backend unreachable', 'error')

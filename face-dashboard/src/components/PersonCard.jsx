@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { BACKEND_URL, resolveImageUrl } from '../utils'
+import { resolveImageUrl } from '../utils'
 import { useToast } from '../context/ToastContext'
 
 // ─── Relationship system ────────────────────────────────────────────────────

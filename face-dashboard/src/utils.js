@@ -1,5 +1,12 @@
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
+export function apiFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    headers: { 'ngrok-skip-browser-warning': 'true', ...options.headers },
+  });
+}
+
 export function resolveImageUrl(imageUrl) {
   if (!imageUrl) return null;
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
