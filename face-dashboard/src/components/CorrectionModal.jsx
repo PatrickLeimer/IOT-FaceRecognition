@@ -94,7 +94,6 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
           position: 'absolute',
           inset: 0,
           background: 'rgba(2, 5, 7, 0.85)',
-          backdropFilter: 'blur(8px)',
         }}
         onClick={onClose}
       />
@@ -103,16 +102,6 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
         className="modal-cyber"
         style={{ position: 'relative', width: '100%', maxWidth: 440 }}
       >
-        {/* Corner brackets */}
-        {[
-          { top: 0, left: 0, borderTop: '1.5px solid var(--cyan)', borderLeft: '1.5px solid var(--cyan)' },
-          { top: 0, right: 0, borderTop: '1.5px solid var(--cyan)', borderRight: '1.5px solid var(--cyan)' },
-          { bottom: 0, left: 0, borderBottom: '1.5px solid var(--cyan)', borderLeft: '1.5px solid var(--cyan)' },
-          { bottom: 0, right: 0, borderBottom: '1.5px solid var(--cyan)', borderRight: '1.5px solid var(--cyan)' },
-        ].map((style, i) => (
-          <div key={i} style={{ position: 'absolute', width: 14, height: 14, pointerEvents: 'none', zIndex: 1, ...style }} />
-        ))}
-
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -149,7 +138,7 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
               justifyContent: 'center',
               color: 'var(--t3)',
               cursor: 'pointer',
-              transition: 'all 0.15s',
+              transition: 'border-color 0.15s, color 0.15s',
               flexShrink: 0,
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)' }}
@@ -164,13 +153,12 @@ export default function CorrectionModal({ isOpen, onClose, event, mode = 'correc
         {/* Event preview */}
         {event.imageUrl && (
           <div style={{ padding: '16px 20px 0' }}>
-            <div className="scan-container" style={{ display: 'inline-block', position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--cyan-border)' }}>
+            <div style={{ display: 'inline-block', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--cyan-border)' }}>
               <img
                 src={resolveImageUrl(event.imageUrl)}
                 alt="Event"
                 style={{ width: 80, height: 80, objectFit: 'cover', display: 'block' }}
               />
-              <div className="scan-beam" />
             </div>
           </div>
         )}

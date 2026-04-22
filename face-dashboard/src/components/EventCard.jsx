@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { updateDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { resolveImageUrl, formatRelativeTime, getConfidenceColor, getStatusInfo } from '../utils'
@@ -14,19 +14,6 @@ function FacePlaceholder() {
         <path d="M8 7h.01M16 7h.01M10 10s.5 1 2 1 2-1 2-1" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
       </svg>
     </div>
-  )
-}
-
-function CornerBrackets({ color = 'var(--cyan)', size = 12 }) {
-  const s = { position: 'absolute', width: size, height: size, pointerEvents: 'none', zIndex: 5 }
-  const b = `1.5px solid ${color}`
-  return (
-    <>
-      <div style={{ ...s, top: 8, left: 8, borderTop: b, borderLeft: b }} />
-      <div style={{ ...s, top: 8, right: 8, borderTop: b, borderRight: b }} />
-      <div style={{ ...s, bottom: 8, left: 8, borderBottom: b, borderLeft: b }} />
-      <div style={{ ...s, bottom: 8, right: 8, borderBottom: b, borderRight: b }} />
-    </>
   )
 }
 
@@ -53,39 +40,12 @@ function getConfClass(confidence) {
   return 'conf-low'
 }
 
-// Pseudo-random but deterministic landmark positions for a face grid
-const LANDMARK_POSITIONS = [
-  [0.38, 0.32], [0.62, 0.32],           // eyes
-  [0.50, 0.48],                          // nose tip
-  [0.34, 0.62], [0.50, 0.66], [0.66, 0.62], // mouth
-  [0.28, 0.42], [0.72, 0.42],           // cheeks
-  [0.44, 0.25], [0.56, 0.25],           // forehead
-]
-
-export default function EventCard({ event, isNew }) {
+export default function EventCard({ event }) {
   const [imgError, setImgError] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState('correct')
   const [confirming, setConfirming] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  const cardRef = useRef(null)
   const toast = useToast()
-
-  const handleMouseMove = useCallback((e) => {
-    const card = cardRef.current
-    if (!card) return
-    const rect = card.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / rect.width - 0.5
-    const y = (e.clientY - rect.top) / rect.height - 0.5
-    card.style.transform = `perspective(700px) rotateX(${-y * 7}deg) rotateY(${x * 7}deg) translateZ(6px)`
-  }, [])
-
-  const handleMouseLeave = useCallback(() => {
-    const card = cardRef.current
-    if (!card) return
-    card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg) translateZ(0)'
-    setHovered(false)
-  }, [])
 
   const { status, confidence, detectedName, correctedName, imageUrl, timestamp, id } = event
   const imgSrc = resolveImageUrl(imageUrl)
@@ -113,16 +73,9 @@ export default function EventCard({ event, isNew }) {
 
   return (
     <>
-      <div
-        ref={cardRef}
-        className={`card-cyber card-tilt flex flex-col${isNew ? ' new-event-flash' : ''}`}
-        style={{ overflow: 'hidden' }}
-        onMouseMove={handleMouseMove}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={handleMouseLeave}
-      >
+      <div className="card-cyber flex flex-col" style={{ overflow: 'hidden' }}>
         {/* Image area */}
-        <div className="scan-container" style={{ position: 'relative', aspectRatio: '1', background: 'var(--bg-1)' }}>
+        <div style={{ position: 'relative', aspectRatio: '1', background: 'var(--bg-1)' }}>
           {imgSrc && !imgError ? (
             <img
               src={imgSrc}
@@ -135,12 +88,6 @@ export default function EventCard({ event, isNew }) {
             <FacePlaceholder />
           )}
 
-          {/* Scan beam */}
-          <div className="scan-beam" />
-
-          {/* Corner brackets */}
-          <CornerBrackets />
-
           {/* Bounding box */}
           {event.facialArea && !imgError && imgSrc && (
             <div
@@ -151,7 +98,6 @@ export default function EventCard({ event, isNew }) {
                 width:  `${event.facialArea.w * 100}%`,
                 height: `${event.facialArea.h * 100}%`,
                 border: '1.5px solid var(--cyan)',
-                boxShadow: '0 0 8px rgba(0,229,255,0.4), inset 0 0 8px rgba(0,229,255,0.1)',
                 pointerEvents: 'none',
                 zIndex: 6,
               }}
@@ -172,19 +118,6 @@ export default function EventCard({ event, isNew }) {
               </span>
             </div>
           )}
-
-          {/* Facial landmark dots on hover */}
-          {hovered && !imgError && imgSrc && LANDMARK_POSITIONS.map(([lx, ly], i) => (
-            <div
-              key={i}
-              className="face-dot"
-              style={{
-                left: `calc(${lx * 100}% - 2px)`,
-                top: `calc(${ly * 100}% - 2px)`,
-                animationDelay: `${i * 0.04}s, ${0.44 + i * 0.04}s`,
-              }}
-            />
-          ))}
 
           {/* Status badge */}
           <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 7 }}>

@@ -41,7 +41,6 @@ function getRelColor(relationship, users) {
 
 function RelationshipPicker({ current, onSave, onClose }) {
   const [custom, setCustom] = useState('')
-  const [showCustom, setShowCustom] = useState(false)
   const ref = useRef(null)
 
   // Close on outside click
@@ -61,7 +60,6 @@ function RelationshipPicker({ current, onSave, onClose }) {
   return (
     <div
       ref={ref}
-      className="fade-in"
       style={{
         position: 'absolute',
         top: 'calc(100% + 6px)',
@@ -70,7 +68,7 @@ function RelationshipPicker({ current, onSave, onClose }) {
         background: 'var(--bg-2)',
         border: '1px solid var(--cyan-border-h)',
         borderRadius: 8,
-        boxShadow: '0 16px 40px rgba(0,0,0,0.7), 0 0 20px rgba(0,229,255,0.1)',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.7)',
         width: 260,
         overflow: 'hidden',
       }}
@@ -120,7 +118,7 @@ function RelationshipPicker({ current, onSave, onClose }) {
                     color: current === opt ? group.color : 'var(--t2)',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
-                    boxShadow: current === opt ? `0 0 8px ${group.color}40` : 'none',
+                    boxShadow: 'none',
                   }}
                   onMouseEnter={e => { if (current !== opt) { e.currentTarget.style.borderColor = group.color; e.currentTarget.style.color = group.color } }}
                   onMouseLeave={e => { if (current !== opt) { e.currentTarget.style.borderColor = group.border; e.currentTarget.style.color = 'var(--t2)' } }}
@@ -146,7 +144,7 @@ function RelationshipPicker({ current, onSave, onClose }) {
               placeholder="e.g. Mentor, Coach…"
               className="input-cyber"
               style={{ flex: 1, fontSize: '0.72rem', padding: '5px 9px' }}
-              autoFocus={showCustom}
+              autoFocus
             />
             <button
               onClick={handleCustomSubmit}
@@ -236,7 +234,6 @@ export default function PersonCard({ person, onFaceDeleted, onRenamed, onAddPhot
   return (
     <div
       className={`card-cyber${selectedForMerge ? ' card-cyber-selected' : ''}`}
-      style={{ overflow: 'hidden', transition: 'all 0.2s' }}
     >
       {/* Header */}
       <div style={{
@@ -257,7 +254,7 @@ export default function PersonCard({ person, onFaceDeleted, onRenamed, onAddPhot
             background: selectedForMerge ? 'var(--cyan)' : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, cursor: 'pointer', transition: 'all 0.15s',
-            boxShadow: selectedForMerge ? 'var(--cyan-glow-sm)' : 'none',
+            boxShadow: 'none',
           }}
           title="Select for merge"
         >
@@ -271,15 +268,14 @@ export default function PersonCard({ person, onFaceDeleted, onRenamed, onAddPhot
         {/* Avatar */}
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
-          background: 'linear-gradient(135deg, var(--bg-3), var(--bg-4))',
+          background: 'var(--bg-3)',
           border: `1px solid ${relStyle ? relStyle.border : 'var(--cyan-border)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
           fontFamily: 'var(--ff-data)', fontSize: '0.65rem', fontWeight: 700,
           color: relStyle ? relStyle.color : 'var(--cyan)',
           letterSpacing: '0.05em',
-          boxShadow: relStyle ? `0 0 8px ${relStyle.color}30` : 'none',
-          transition: 'all 0.2s',
+          transition: 'border-color 0.2s',
         }}>
           {initials}
         </div>
@@ -396,7 +392,7 @@ export default function PersonCard({ person, onFaceDeleted, onRenamed, onAddPhot
       </div>
 
       {/* Face grid */}
-      <div style={{ padding: '10px' }}>
+      <div style={{ padding: '10px', overflow: 'hidden' }}>
         {loadingFaces ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
             {[...Array(4)].map((_, i) => (

@@ -113,7 +113,7 @@ export default function Enroll() {
       </div>
 
       {/* Tips */}
-      <div className="tips-panel stagger-1">
+      <div className="tips-panel">
         <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--cyan)', marginBottom: 10 }}>
           Optimal Capture Guidelines
         </p>
@@ -134,7 +134,7 @@ export default function Enroll() {
 
       {done ? (
         /* Results */
-        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card-cyber" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <p style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--cyan)', textTransform: 'uppercase' }}>
               Enrollment Complete
@@ -187,7 +187,7 @@ export default function Enroll() {
 
           {/* Drop zone */}
           <div
-            className={`dropzone-cyber${dragOver ? ' drag-over' : ''} stagger-2`}
+            className={`dropzone-cyber${dragOver ? ' drag-over' : ''}`}
             onDrop={handleDrop}
             onDragOver={e => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
@@ -211,7 +211,7 @@ export default function Enroll() {
               justifyContent: 'center',
               color: dragOver ? 'var(--cyan)' : 'var(--t3)',
               transition: 'all 0.2s',
-              boxShadow: dragOver ? 'var(--cyan-glow-sm)' : 'none',
+              boxShadow: 'none',
             }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -239,7 +239,7 @@ export default function Enroll() {
 
           {/* Thumbnails */}
           {files.length > 0 && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.62rem', color: 'var(--t3)', letterSpacing: '0.08em' }}>
                   {files.length} photo(s) staged
@@ -277,7 +277,7 @@ export default function Enroll() {
           )}
 
           {/* Person selection */}
-          <div className="card-cyber stagger-3" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="card-cyber" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               {['New subject', 'Existing subject'].map((label, i) => (
                 <button
@@ -332,7 +332,7 @@ export default function Enroll() {
 
           {/* Progress */}
           {progress && !done && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontFamily: 'var(--ff-data)', fontSize: '0.6rem', color: 'var(--t3)', letterSpacing: '0.1em' }}>
                   UPLOADING
@@ -351,7 +351,7 @@ export default function Enroll() {
           <button
             onClick={handleSubmit}
             disabled={!!progress && !done}
-            className="btn-cyber btn-cyber-primary stagger-4"
+            className="btn-cyber btn-cyber-primary"
             style={{ padding: '14px', fontSize: '0.75rem', width: '100%', borderRadius: 6 }}
           >
             {progress && !done

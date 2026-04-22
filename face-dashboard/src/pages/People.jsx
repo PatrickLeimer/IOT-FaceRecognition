@@ -207,7 +207,7 @@ export default function People() {
       {/* Add person form */}
       {showAddForm && (
         <div
-          className="card-cyber fade-in"
+          className="card-cyber"
           style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -249,7 +249,7 @@ export default function People() {
                             color: newRelationship === opt ? group.color : 'var(--t2)',
                             cursor: 'pointer',
                             transition: 'all 0.15s',
-                            boxShadow: newRelationship === opt ? `0 0 8px ${group.color}40` : 'none',
+                            boxShadow: 'none',
                           }}
                         >
                           {opt}
@@ -379,7 +379,7 @@ export default function People() {
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((user, i) => (
-            <div key={user.id} className={`stagger-${Math.min(i + 1, 6)}`}>
+            <div key={user.id}>
               <PersonCard
                 person={user}
                 selectedForMerge={mergeSelected.includes(user.id)}
